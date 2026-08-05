@@ -1,12 +1,12 @@
-# AI 陪走夥伴公開展示網站
+# SafeStride 安行公開展示網站
 
-這是「AI 陪走夥伴」的公開展示頁，說明高齡行人過馬路的安全痛點、App 的零干擾提示設計，以及 Edge AI 本機處理的隱私優先架構。
+這是 SafeStride 安行的 GitHub Pages 公開展示頁，內容包含高齡行者步行安全痛點、衛教宣傳、App 示範畫面、APK 下載入口，以及本機資料分析的隱私說明。
 
 ## 開發
 
 ```bash
 npm run dev
-npm run build
+npm run build:pages
 ```
 
 主要頁面在 `app/page.tsx`，全站樣式在 `app/globals.css`，社群分享圖放在 `public/og.jpg`。

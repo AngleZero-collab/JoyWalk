@@ -1,87 +1,112 @@
+import type { CSSProperties } from "react";
+
+const 網站路徑前綴 = process.env.NEXT_PUBLIC_SITE_BASE_PATH ?? "";
+const APK下載連結 = "https://github.com/AngleZero-collab/SafeStride/releases/latest";
+const 原始碼連結 = "https://github.com/AngleZero-collab/SafeStride";
+
 const 痛點列表 = [
   {
-    數字: "25秒",
-    標題: "秒數不是人人都夠用",
+    數字: "步速差異",
+    標題: "同一個綠燈秒數，不代表每個人都夠用",
     說明:
-      "以 20 公尺斑馬線與 0.8 公尺/秒步速估算，高齡行人至少需要約 25 秒才能安心通過。",
+      "高齡行者可能因步幅縮短、起步較慢或中途停頓，需要比一般成人更充裕的通行時間。",
   },
   {
-    數字: "3件事",
-    標題: "路口同時要判斷太多資訊",
+    數字: "反應負擔",
+    標題: "路口資訊太多，容易分散注意力",
     說明:
-      "看號誌、注意轉彎車、估算距離與步速，對視力、聽力與反應速度都形成壓力。",
+      "看號誌、注意轉彎車、判斷距離、留意身旁人流，常讓行走本身變成一連串壓力判斷。",
   },
   {
-    數字: "0上傳",
-    標題: "安全提醒不該犧牲隱私",
+    數字: "跌倒風險",
+    標題: "步態不穩時，勉強前進更危險",
     說明:
-      "相機畫面、定位與動作資料都應在手機本機處理，判斷後立即釋放，不留下個人影像。",
+      "若步頻突然下降、身體晃動變大或停下時間變長，應優先停下、扶穩，再重新判斷是否前進。",
   },
 ];
 
-const 流程列表 = [
-  "測量個人平均步速",
-  "啟動散步守護模式",
-  "本機辨識綠燈剩餘秒數",
-  "比較所需秒數與剩餘秒數",
-  "以全螢幕顏色、語音與震動提醒",
+const 衛教列表 = [
+  "出門前先確認鞋底防滑、拐杖或助行器是否穩固。",
+  "過路口前先停一下，讓身體站穩，再觀察車流與行人號誌。",
+  "若感覺頭暈、腳步拖曳或步伐忽快忽慢，先退回安全處休息。",
+  "夜間或雨天行走時，選擇照明較好、斑馬線清楚的路口。",
+];
+
+const App流程列表 = [
+  {
+    步驟: "01",
+    標題: "測量個人步速",
+    說明: "App 先用手機動作感測器收集三秒步行資料，建立示範平均步速。",
+  },
+  {
+    步驟: "02",
+    標題: "開始步行分析",
+    說明: "使用手機計步器與加速度資料，分析步頻、即時步速與晃動程度。",
+  },
+  {
+    步驟: "03",
+    標題: "用紅綠畫面提醒",
+    說明: "穩定時顯示綠色安心前進；不穩時顯示紅色，提醒先停下休息。",
+  },
 ];
 
 const 隱私列表 = [
   {
-    標題: "相機影格本機處理",
-    說明:
-      "Demo 以模擬資料代表號誌辨識；正式版可替換為 JSI 或 Native Modules 串接的輕量化模型。",
+    標題: "不使用攝像頭",
+    說明: "目前版本不拍照、不錄影，也不進行號誌影像辨識。",
   },
   {
-    標題: "定位只做情境啟動",
-    說明:
-      "定位用來判斷是否進入路口守護情境，不建立行蹤紀錄，也不傳送雲端。",
+    標題: "不使用定位",
+    說明: "MVP 先專注於手機端步行資料，不建立位置軌跡。",
   },
   {
-    標題: "動作資料只算步速",
-    說明:
-      "加速度計用於估算個人步速，讓每次判斷都能貼近使用者實際行走能力。",
+    標題: "本機分析",
+    說明: "步數、步頻、加速度與震動提醒都在手機本機處理，不上傳雲端。",
   },
 ];
 
 export default function Home() {
+  const 主視覺樣式 = {
+    "--主視覺圖片": `url("${網站路徑前綴}/og.jpg")`,
+  } as CSSProperties;
+
   return (
     <main className="網站頁面">
-      <section className="主視覺">
+      <section className="主視覺" style={主視覺樣式}>
         <div className="主視覺遮罩" />
         <nav className="導覽列" aria-label="主要導覽">
-          <a className="品牌標記" href="#top" aria-label="AI 陪走夥伴首頁">
-            AI 陪走夥伴
+          <a className="品牌標記" href="#top" aria-label="SafeStride 安行首頁">
+            SafeStride 安行
           </a>
           <div className="導覽連結">
-            <a href="#pain-points">痛點</a>
-            <a href="#app-demo">App 示意</a>
-            <a href="#privacy">Edge AI</a>
+            <a href="#pain-points">痛點衛教</a>
+            <a href="#app-demo">App 展示</a>
+            <a href="#download">APK 下載</a>
           </div>
         </nav>
 
         <div className="主視覺內容" id="top">
-          <p className="前導文字">AI Walk Buddy</p>
-          <h1>AI 陪走夥伴</h1>
+          <p className="前導文字">高齡行者步行安全守護</p>
+          <h1>SafeStride 安行</h1>
           <p className="主標副文">
-            為高齡行人設計的零干擾過馬路守護 App。把「剩幾秒」換算成「我能不能安全通過」。
+            用手機端步數、步頻與加速度資料，協助高齡行者知道：現在步態是否穩定，是否該先停下休息。
           </p>
           <div className="主視覺按鈕列" aria-label="頁面快速連結">
-            <a className="主要連結" href="#app-demo">
-              看 App 示意
+            <a className="主要連結" href={APK下載連結}>
+              下載 APK
             </a>
-            <a className="次要連結" href="#pain-points">
-              了解安全痛點
+            <a className="次要連結" href="#app-demo">
+              看 App 示範
             </a>
           </div>
+          <p className="下載提示列">目前 MVP 不使用攝像頭、不使用定位，僅分析手機本身收集到的步行資料。</p>
         </div>
       </section>
 
       <section className="痛點區塊" id="pain-points" aria-labelledby="痛點標題">
         <div className="區塊標題列">
-          <p className="前導文字">為什麼需要它</p>
-          <h2 id="痛點標題">不是長輩走得慢，是路口沒有替每個人留足判斷時間。</h2>
+          <p className="前導文字">痛點與衛教宣傳</p>
+          <h2 id="痛點標題">高齡行走安全，不只是「看見綠燈」這麼簡單。</h2>
         </div>
 
         <div className="痛點卡片列">
@@ -93,49 +118,73 @@ export default function Home() {
             </article>
           ))}
         </div>
+
+        <div className="衛教盒">
+          <h3>行前與路口安全提醒</h3>
+          <ul className="衛教清單">
+            {衛教列表.map((衛教) => (
+              <li key={衛教}>{衛教}</li>
+            ))}
+          </ul>
+        </div>
       </section>
 
       <section className="示意區塊" id="app-demo" aria-labelledby="示意標題">
         <div className="示意文字">
-          <p className="前導文字">App 示意圖</p>
-          <h2 id="示意標題">把複雜判斷壓縮成一眼看懂的紅與綠。</h2>
+          <p className="前導文字">App 展示</p>
+          <h2 id="示意標題">示範使用 App：先測步速，再看步態提醒。</h2>
           <p>
-            高齡使用者不需要操作地圖、輸入地址或閱讀小字。啟動守護後，畫面只回應一件事：
-            現在是否有足夠時間過馬路。
+            App 不需要複雜操作。高齡使用者只要按下大型按鈕，手機就會讀取步行資料並以全螢幕紅綠色、語音與震動提醒目前狀態。
           </p>
           <div className="公式盒">
-            <span>安全穿越所需秒數</span>
-            <strong>20m ÷ 0.8m/s = 25秒</strong>
+            <span>本機分析資料</span>
+            <strong>步數 + 步頻 + 加速度晃動</strong>
           </div>
         </div>
 
-        <div className="手機舞台" aria-label="AI 陪走夥伴 App 示意圖">
+        <div className="手機舞台" aria-label="SafeStride 安行 App 示意圖">
           <div className="手機外框 主要手機">
             <div className="手機聽筒" />
             <div className="手機畫面 綠燈畫面">
-              <span className="狀態小字">綠燈剩 32 秒</span>
+              <span className="狀態小字">步頻 86 步/分</span>
               <span className="巨大符號">✓</span>
-              <strong>時間充足，安心通過</strong>
-              <span className="秒數列">需要 25 秒</span>
+              <strong>步態穩定，安心前進</strong>
+              <span className="秒數列">步速 0.72 m/s</span>
             </div>
           </div>
 
           <div className="手機外框 警示手機">
             <div className="手機聽筒" />
             <div className="手機畫面 紅燈畫面">
-              <span className="狀態小字">綠燈剩 12 秒</span>
+              <span className="狀態小字">晃動偏高</span>
               <span className="巨大符號">！</span>
-              <strong>時間不夠，請退回！</strong>
+              <strong>步態不穩，請先停下休息</strong>
               <span className="秒數列">急促震動提醒</span>
             </div>
           </div>
         </div>
       </section>
 
-      <section className="隱私區塊" id="privacy" aria-labelledby="隱私標題">
+      <section className="流程區塊" aria-labelledby="流程標題">
+        <div>
+          <p className="前導文字">示範流程</p>
+          <h2 id="流程標題">三步驟完成手機端步行分析。</h2>
+        </div>
+        <ol className="流程清單">
+          {App流程列表.map((流程) => (
+            <li key={流程.標題}>
+              <span>{流程.步驟}</span>
+              <strong>{流程.標題}</strong>
+              <p>{流程.說明}</p>
+            </li>
+          ))}
+        </ol>
+      </section>
+
+      <section className="隱私區塊" aria-labelledby="隱私標題">
         <div className="區塊標題列">
-          <p className="前導文字">Edge AI 隱私優先</p>
-          <h2 id="隱私標題">資料留在手機，判斷就在身邊完成。</h2>
+          <p className="前導文字">隱私優先</p>
+          <h2 id="隱私標題">先把手機端資料分析做好，再逐步擴充。</h2>
         </div>
         <div className="隱私格線">
           {隱私列表.map((項目) => (
@@ -147,24 +196,27 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="流程區塊" aria-labelledby="流程標題">
+      <section className="下載區塊" id="download" aria-labelledby="下載標題">
         <div>
-          <p className="前導文字">MVP Demo 流程</p>
-          <h2 id="流程標題">從測步速到過馬路提醒，五步完成守護。</h2>
+          <p className="前導文字">直接在手機試用</p>
+          <h2 id="下載標題">下載 APK，安裝到 Android 手機測試。</h2>
+          <p>
+            GitHub Actions 會產生測試版 APK。若尚未建立 Release，可先到 Actions 手動執行「產生 Android APK」並下載 artifact。
+          </p>
         </div>
-        <ol className="流程清單">
-          {流程列表.map((流程, 索引) => (
-            <li key={流程}>
-              <span>{String(索引 + 1).padStart(2, "0")}</span>
-              <strong>{流程}</strong>
-            </li>
-          ))}
-        </ol>
+        <div className="下載按鈕列">
+          <a className="主要連結 深色連結" href={APK下載連結}>
+            前往 APK 下載
+          </a>
+          <a className="次要連結 原始碼連結" href={原始碼連結}>
+            查看 GitHub 專案
+          </a>
+        </div>
       </section>
 
       <footer className="頁尾">
-        <strong>AI 陪走夥伴</strong>
-        <span>為高齡行人打造的本機 AI 過馬路守護 Demo</span>
+        <strong>SafeStride 安行</strong>
+        <span>高齡行者步行安全衛教與手機端步態分析 MVP</span>
       </footer>
     </main>
   );

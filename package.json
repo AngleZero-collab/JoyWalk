@@ -9,16 +9,14 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "site:dev": "npm --prefix website run dev",
-    "site:build": "npm --prefix website run build"
+    "site:build": "npm --prefix website run build",
+    "site:build:pages": "npm --prefix website run build:pages"
   },
   "dependencies": {
     "expo": "~57.0.0",
-    "expo-camera": "~57.0.3",
-    "expo-location": "~57.0.5",
     "expo-sensors": "~57.0.2",
     "react": "19.2.3",
     "react-native": "0.86.2"
   },
-  "devDependencies": {},
   "license": "UNLICENSED"
 }

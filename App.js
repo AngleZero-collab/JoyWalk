@@ -10,36 +10,45 @@ import {
   Vibration,
   View,
 } from 'react-native';
-import { CameraView, useCameraPermissions } from 'expo-camera';
-import * as Location from 'expo-location';
-import { Accelerometer } from 'expo-sensors';
+import { Accelerometer, Pedometer } from 'expo-sensors';
 
 const 畫面 = {
   設定步速: '設定步速',
   首頁待機: '首頁待機',
-  過馬路守護: '過馬路守護',
+  步行守護: '步行守護',
 };
 
-const 守護結果 = {
-  等待判讀: '等待判讀',
-  可以通過: '可以通過',
-  請勿通過: '請勿通過',
+const 分析狀態 = {
+  收集中: '收集中',
+  步態穩定: '步態穩定',
+  建議休息: '建議休息',
 };
 
 const 語音提示文字 = {
   步速測量完成: '步速測量完成',
-  守護模式啟動: '守護模式啟動',
-  請允許相機權限: '請允許相機權限',
-  請允許定位權限: '請允許定位權限',
+  守護模式啟動: '步行分析已啟動',
+  請允許動作感測器: '請允許動作感測器權限',
   已結束散步: '已結束散步',
-  可以通過: '時間充足，安心通過',
-  請勿通過: '時間不夠，請退回！',
+  步態穩定: '步態穩定，安心前進',
+  建議休息: '步態不穩，請先停下休息',
 };
 
 const 預設平均步速 = 0.8;
-const 斑馬線長度 = 20;
-const 模擬最短綠燈秒數 = 5;
-const 模擬最長綠燈秒數 = 40;
+const 分析間隔毫秒 = 3000;
+const 加速度取樣毫秒 = 250;
+const 最大樣本數 = 96;
+
+const 初始行走分析 = {
+  狀態: 分析狀態.收集中,
+  主文字: '正在收集步行資料',
+  說明文字: '請自然走幾步',
+  步數: 0,
+  步頻: 0,
+  即時步速: 0,
+  穩定分數: 0,
+  晃動指數: 0,
+  資料來源: '手機動作感測器',
+};
 
 export default function App() {
   const [目前畫面, 設定目前畫面] = useState(畫面.設定步速);
@@ -47,16 +56,20 @@ export default function App() {
   const [正在測量步速, 設定正在測量步速] = useState(false);
   const [正在啟動守護, 設定正在啟動守護] = useState(false);
   const [加速度取樣次數, 設定加速度取樣次數] = useState(0);
-  const [剩餘綠燈秒數, 設定剩餘綠燈秒數] = useState(null);
-  const [守護狀態, 設定守護狀態] = useState(守護結果.等待判讀);
+  const [測量步數, 設定測量步數] = useState(0);
+  const [行走分析, 設定行走分析] = useState(初始行走分析);
   const [權限提示, 設定權限提示] = useState('');
-  const [相機權限狀態, 請求相機權限] = useCameraPermissions();
-  const 加速度訂閱 = useRef(null);
-  const 步速計時器 = useRef(null);
-  const 影像辨識計時器 = useRef(null);
-  const 暫存影格參照 = useRef(null);
 
-  const 安全穿越所需秒數 = 平均步速 ? 斑馬線長度 / 平均步速 : 0;
+  const 步速計時器 = useRef(null);
+  const 分析計時器 = useRef(null);
+  const 測量加速度訂閱 = useRef(null);
+  const 測量計步訂閱 = useRef(null);
+  const 守護加速度訂閱 = useRef(null);
+  const 守護計步訂閱 = useRef(null);
+  const 守護開始時間 = useRef(null);
+  const 守護步數 = useRef(0);
+  const 加速度樣本 = useRef([]);
+  const 上次分析狀態 = useRef(分析狀態.收集中);
 
   useEffect(() => {
     return () => {
@@ -66,31 +79,17 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    if (目前畫面 !== 畫面.過馬路守護 || !平均步速) {
+    if (目前畫面 !== 畫面.步行守護) {
       return;
     }
 
-    執行本地端影像辨識模擬();
-    影像辨識計時器.current = setInterval(執行本地端影像辨識模擬, 3000);
+    執行本機步行分析();
+    分析計時器.current = setInterval(執行本機步行分析, 分析間隔毫秒);
 
     return () => {
       清除守護資源();
     };
   }, [目前畫面, 平均步速]);
-
-  useEffect(() => {
-    if (目前畫面 !== 畫面.過馬路守護) {
-      return;
-    }
-
-    if (守護狀態 === 守護結果.可以通過) {
-      發出語音提示(語音提示文字.可以通過);
-    }
-
-    if (守護狀態 === 守護結果.請勿通過) {
-      發出語音提示(語音提示文字.請勿通過);
-    }
-  }, [目前畫面, 守護狀態, 剩餘綠燈秒數]);
 
   function 清除步速測量資源() {
     if (步速計時器.current) {
@@ -98,19 +97,36 @@ export default function App() {
       步速計時器.current = null;
     }
 
-    if (加速度訂閱.current) {
-      加速度訂閱.current.remove();
-      加速度訂閱.current = null;
+    if (測量加速度訂閱.current) {
+      測量加速度訂閱.current.remove();
+      測量加速度訂閱.current = null;
+    }
+
+    if (測量計步訂閱.current) {
+      測量計步訂閱.current.remove();
+      測量計步訂閱.current = null;
     }
   }
 
   function 清除守護資源() {
-    if (影像辨識計時器.current) {
-      clearInterval(影像辨識計時器.current);
-      影像辨識計時器.current = null;
+    if (分析計時器.current) {
+      clearInterval(分析計時器.current);
+      分析計時器.current = null;
     }
 
-    暫存影格參照.current = null;
+    if (守護加速度訂閱.current) {
+      守護加速度訂閱.current.remove();
+      守護加速度訂閱.current = null;
+    }
+
+    if (守護計步訂閱.current) {
+      守護計步訂閱.current.remove();
+      守護計步訂閱.current = null;
+    }
+
+    守護開始時間.current = null;
+    守護步數.current = 0;
+    加速度樣本.current = [];
     Vibration.cancel();
   }
 
@@ -119,22 +135,35 @@ export default function App() {
     AccessibilityInfo.announceForAccessibility(提示文字);
   }
 
-  function 判斷是否可以通過(本次剩餘秒數, 本次所需秒數) {
-    // 數學公式：安全穿越所需秒數 = 斑馬線長度（公尺） / 使用者平均步速（公尺/秒）。
-    // 決策規則：剩餘綠燈秒數足夠時才建議通過，否則請使用者退回等待。
-    return 本次剩餘秒數 >= 本次所需秒數;
-  }
+  async function 請求步行感測權限() {
+    try {
+      const 加速度權限 = await Accelerometer.requestPermissionsAsync();
 
-  function 觸發守護震動(本次守護結果) {
-    Vibration.cancel();
+      if (!加速度權限.granted) {
+        設定權限提示('請允許動作感測器，才能分析步行狀態。');
+        發出語音提示(語音提示文字.請允許動作感測器);
+        return false;
+      }
 
-    if (本次守護結果 === 守護結果.可以通過) {
-      Vibration.vibrate();
-      return;
-    }
+      const 計步器可用 = await Pedometer.isAvailableAsync();
 
-    if (本次守護結果 === 守護結果.請勿通過) {
-      Vibration.vibrate([500, 500, 500]);
+      if (!計步器可用) {
+        設定權限提示('此手機未提供計步器，將改用加速度資料估算步頻。');
+        return true;
+      }
+
+      if (typeof Pedometer.requestPermissionsAsync === 'function') {
+        const 計步器權限 = await Pedometer.requestPermissionsAsync();
+
+        if (!計步器權限.granted) {
+          設定權限提示('未允許活動辨識，將改用加速度資料估算步頻。');
+        }
+      }
+
+      return true;
+    } catch (錯誤) {
+      設定權限提示('無法啟動手機感測器，請確認權限後再試一次。');
+      return false;
     }
   }
 
@@ -142,21 +171,28 @@ export default function App() {
     設定權限提示('');
     設定正在測量步速(true);
     設定加速度取樣次數(0);
+    設定測量步數(0);
 
     try {
-      const 加速度權限 = await Accelerometer.requestPermissionsAsync();
+      const 可以讀取感測器 = await 請求步行感測權限();
 
-      if (加速度權限.granted) {
-        Accelerometer.setUpdateInterval(250);
-        加速度訂閱.current = Accelerometer.addListener(() => {
-          // Demo 只模擬收集加速度資料；正式版可由取樣峰值估算步頻與步幅。
+      if (可以讀取感測器) {
+        Accelerometer.setUpdateInterval(加速度取樣毫秒);
+        測量加速度訂閱.current = Accelerometer.addListener(() => {
+          // Demo 先模擬收集三秒步行資料；正式版可用步頻、步幅與行走穩定度估算個人化步速。
           設定加速度取樣次數((目前次數) => 目前次數 + 1);
         });
-      } else {
-        設定權限提示('未允許動作感測器，將使用示範步速。');
+
+        const 計步器可用 = await Pedometer.isAvailableAsync();
+
+        if (計步器可用) {
+          測量計步訂閱.current = Pedometer.watchStepCount((結果) => {
+            設定測量步數(結果.steps);
+          });
+        }
       }
     } catch (錯誤) {
-      設定權限提示('無法讀取動作感測器，將使用示範步速。');
+      設定權限提示('感測器讀取失敗，將使用示範步速。');
     }
 
     步速計時器.current = setTimeout(() => {
@@ -168,74 +204,179 @@ export default function App() {
     }, 3000);
   }
 
-  async function 開始散步守護() {
+  async function 開始步行守護() {
     設定權限提示('');
     設定正在啟動守護(true);
 
     try {
-      const 相機結果 = 相機權限狀態?.granted
-        ? 相機權限狀態
-        : await 請求相機權限();
+      const 可以讀取感測器 = await 請求步行感測權限();
 
-      if (!相機結果?.granted) {
-        設定權限提示('請允許相機權限，才能在本機判讀號誌。');
-        發出語音提示(語音提示文字.請允許相機權限);
+      if (!可以讀取感測器) {
         return;
       }
 
-      const 定位結果 = await Location.requestForegroundPermissionsAsync();
-
-      if (定位結果.status !== 'granted') {
-        設定權限提示('請允許定位權限，才能啟動路口守護模式。');
-        發出語音提示(語音提示文字.請允許定位權限);
-        return;
-      }
-
-      設定守護狀態(守護結果.等待判讀);
-      設定剩餘綠燈秒數(null);
+      啟動守護感測器();
+      設定行走分析(初始行走分析);
+      上次分析狀態.current = 分析狀態.收集中;
       發出語音提示(語音提示文字.守護模式啟動);
-      設定目前畫面(畫面.過馬路守護);
+      設定目前畫面(畫面.步行守護);
     } catch (錯誤) {
-      設定權限提示('啟動守護模式失敗，請確認相機與定位權限。');
+      設定權限提示('啟動步行分析失敗，請確認手機動作感測器權限。');
     } finally {
       設定正在啟動守護(false);
     }
   }
 
+  async function 啟動守護感測器() {
+    清除守護資源();
+    守護開始時間.current = Date.now();
+    守護步數.current = 0;
+    加速度樣本.current = [];
+
+    Accelerometer.setUpdateInterval(加速度取樣毫秒);
+    守護加速度訂閱.current = Accelerometer.addListener(({ x, y, z }) => {
+      const 合成加速度 = Math.sqrt(x * x + y * y + z * z);
+      加速度樣本.current = [
+        ...加速度樣本.current,
+        { 時間: Date.now(), 合成加速度 },
+      ].slice(-最大樣本數);
+    });
+
+    const 計步器可用 = await Pedometer.isAvailableAsync();
+
+    if (計步器可用) {
+      守護計步訂閱.current = Pedometer.watchStepCount((結果) => {
+        守護步數.current = 結果.steps;
+      });
+    }
+  }
+
   function 結束散步() {
     清除守護資源();
-    設定守護狀態(守護結果.等待判讀);
-    設定剩餘綠燈秒數(null);
+    設定行走分析(初始行走分析);
     設定正在啟動守護(false);
     發出語音提示(語音提示文字.已結束散步);
     設定目前畫面(畫面.首頁待機);
   }
 
-  function 產生模擬綠燈秒數() {
-    const 範圍 = 模擬最長綠燈秒數 - 模擬最短綠燈秒數 + 1;
-    return Math.floor(Math.random() * 範圍) + 模擬最短綠燈秒數;
+  function 計算標準差(數列) {
+    if (數列.length < 2) {
+      return 0;
+    }
+
+    const 平均值 = 數列.reduce((總和, 數值) => 總和 + 數值, 0) / 數列.length;
+    const 變異量 =
+      數列.reduce((總和, 數值) => 總和 + Math.pow(數值 - 平均值, 2), 0) /
+      數列.length;
+
+    return Math.sqrt(變異量);
   }
 
-  function 執行本地端影像辨識模擬() {
-    // 隱私原則：此 Demo 不拍照、不錄影、不儲存影像，也沒有任何網路上傳。
-    // 未來擴充點：可透過 JSI 或 Native Modules 串接 C/C++ 輕量化視覺辨識模型，
-    // 在原生端讀取單一相機影格、辨識行人號誌秒數，並只回傳整數秒數給 JavaScript。
-    let 本次影格 = null;
-    暫存影格參照.current = 本次影格;
+  function 由加速度估算步頻(樣本, 經過秒數) {
+    if (樣本.length < 6 || 經過秒數 <= 0) {
+      return 0;
+    }
 
-    const 本次剩餘秒數 = 產生模擬綠燈秒數();
-    設定剩餘綠燈秒數(本次剩餘秒數);
+    let 峰值數量 = 0;
 
-    const 本次守護結果 = 判斷是否可以通過(本次剩餘秒數, 安全穿越所需秒數)
-      ? 守護結果.可以通過
-      : 守護結果.請勿通過;
+    for (let 索引 = 1; 索引 < 樣本.length - 1; 索引 += 1) {
+      const 前一筆 = 樣本[索引 - 1].合成加速度;
+      const 目前筆 = 樣本[索引].合成加速度;
+      const 後一筆 = 樣本[索引 + 1].合成加速度;
 
-    設定守護狀態(本次守護結果);
-    觸發守護震動(本次守護結果);
+      if (目前筆 > 前一筆 && 目前筆 > 後一筆 && 目前筆 > 1.08) {
+        峰值數量 += 1;
+      }
+    }
 
-    // 影格處理完畢後立即清除參照，避免留下可識別的隱私資料。
-    本次影格 = null;
-    暫存影格參照.current = null;
+    return (峰值數量 / 經過秒數) * 60;
+  }
+
+  function 產生步行建議({ 步頻, 即時步速, 穩定分數 }) {
+    // 本地端決策規則：只用手機端步數、步頻、加速度晃動與個人平均步速做分析。
+    // 目前版本不讀取攝像頭、不辨識號誌、不上傳任何影像或個人行走資料。
+    if (步頻 < 15 && 即時步速 < 0.2) {
+      return {
+        狀態: 分析狀態.建議休息,
+        主文字: '偵測到停下，請先確認路況',
+        說明文字: '目前沒有穩定步行資料',
+      };
+    }
+
+    if (即時步速 >= 0.45 && 穩定分數 >= 60) {
+      return {
+        狀態: 分析狀態.步態穩定,
+        主文字: '步態穩定，安心前進',
+        說明文字: '手機感測器顯示步伐穩定',
+      };
+    }
+
+    return {
+      狀態: 分析狀態.建議休息,
+      主文字: '步態不穩，請先停下休息',
+      說明文字: '建議放慢、扶穩或等待陪同行人',
+    };
+  }
+
+  function 觸發分析震動(本次狀態) {
+    if (本次狀態 === 上次分析狀態.current) {
+      return;
+    }
+
+    Vibration.cancel();
+
+    if (本次狀態 === 分析狀態.步態穩定) {
+      Vibration.vibrate();
+      發出語音提示(語音提示文字.步態穩定);
+    }
+
+    if (本次狀態 === 分析狀態.建議休息) {
+      Vibration.vibrate([500, 300, 500]);
+      發出語音提示(語音提示文字.建議休息);
+    }
+
+    上次分析狀態.current = 本次狀態;
+  }
+
+  function 執行本機步行分析() {
+    const 開始時間 = 守護開始時間.current ?? Date.now();
+    const 經過秒數 = Math.max((Date.now() - 開始時間) / 1000, 1);
+    const 目前樣本 = 加速度樣本.current;
+    const 目前步數 = 守護步數.current;
+    const 晃動指數 = 計算標準差(目前樣本.map((樣本) => 樣本.合成加速度));
+    const 計步器步頻 = 目前步數 > 0 ? (目前步數 / 經過秒數) * 60 : 0;
+    const 加速度步頻 = 由加速度估算步頻(目前樣本, Math.min(經過秒數, 分析間隔毫秒 / 1000));
+    const 步頻 = 計步器步頻 || 加速度步頻;
+    const 推估步幅 = Math.max(0.35, Math.min(0.75, (平均步速 ?? 預設平均步速) / 1.6));
+    const 即時步速 = (步頻 * 推估步幅) / 60;
+    const 晃動扣分 = Math.min(45, Math.max(0, (晃動指數 - 0.45) * 85));
+    const 過慢扣分 = 即時步速 < 0.45 ? 35 : 0;
+    const 過快扣分 = 步頻 > 130 ? 18 : 0;
+    const 穩定分數 = Math.round(
+      Math.max(0, Math.min(100, 100 - 晃動扣分 - 過慢扣分 - 過快扣分)),
+    );
+
+    if (目前樣本.length < 4 && 目前步數 === 0) {
+      設定行走分析(初始行走分析);
+      return;
+    }
+
+    const 建議 = 產生步行建議({ 步頻, 即時步速, 穩定分數 });
+    const 本次分析 = {
+      ...建議,
+      步數: 目前步數,
+      步頻,
+      即時步速,
+      穩定分數,
+      晃動指數,
+      資料來源: 目前步數 > 0 ? '手機計步器' : '加速度估算',
+    };
+
+    設定行走分析(本次分析);
+    觸發分析震動(本次分析.狀態);
+
+    // 未來擴充點：若日後需要更精準的步態模型，可透過 JSI 或 Native Modules
+    // 串接 C/C++ 輕量化步態分析模型；資料仍只在手機本機端推論，不送往雲端。
   }
 
   if (目前畫面 === 畫面.設定步速) {
@@ -259,7 +400,9 @@ export default function App() {
               <View style={樣式.載入區塊}>
                 <ActivityIndicator color="#000000" size="large" />
                 <Text style={樣式.主要按鈕文字}>測量中...</Text>
-                <Text style={樣式.輔助文字}>已讀取 {加速度取樣次數} 筆動作資料</Text>
+                <Text style={樣式.輔助文字}>
+                  動作資料 {加速度取樣次數} 筆｜步數 {測量步數}
+                </Text>
               </View>
             ) : (
               <Text style={樣式.主要按鈕文字}>開始測量步速</Text>
@@ -278,9 +421,9 @@ export default function App() {
         <View style={樣式.中央內容}>
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="出門散步去"
+            accessibilityLabel="開始步行分析"
             disabled={正在啟動守護}
-            onPress={開始散步守護}
+            onPress={開始步行守護}
             style={({ pressed }) => [
               樣式.首頁巨大按鈕,
               正在啟動守護 && 樣式.停用按鈕,
@@ -288,7 +431,7 @@ export default function App() {
             ]}
           >
             <Text style={樣式.首頁按鈕文字}>
-              {正在啟動守護 ? '啟動中...' : '出門散步去'}
+              {正在啟動守護 ? '啟動中...' : '開始步行分析'}
             </Text>
           </Pressable>
           {!!權限提示 && <Text style={樣式.提示文字}>{權限提示}</Text>}
@@ -297,48 +440,42 @@ export default function App() {
     );
   }
 
-  const 可以通過 = 守護狀態 === 守護結果.可以通過;
-  const 請勿通過 = 守護狀態 === 守護結果.請勿通過;
-  const 守護背景色 = 可以通過 ? '#008000' : 請勿通過 ? '#FF0000' : '#000000';
-  const 守護符號 = 可以通過 ? '✓' : 請勿通過 ? '！' : '…';
-  const 守護文字 = 可以通過
-    ? '時間充足，安心通過'
-    : 請勿通過
-      ? '時間不夠，請退回！'
-      : '正在判讀號誌';
+  const 步態穩定 = 行走分析.狀態 === 分析狀態.步態穩定;
+  const 建議休息 = 行走分析.狀態 === 分析狀態.建議休息;
+  const 守護背景色 = 步態穩定 ? '#008000' : 建議休息 ? '#FF0000' : '#000000';
+  const 守護符號 = 步態穩定 ? '✓' : 建議休息 ? '！' : '…';
 
   return (
     <View style={[樣式.守護畫面, { backgroundColor: 守護背景色 }]}>
       <StatusBar hidden />
-      <CameraView
-        active={目前畫面 === 畫面.過馬路守護}
-        animateShutter={false}
-        facing="back"
-        style={樣式.隱藏相機}
-      />
       <View
         accessibilityLiveRegion="assertive"
-        accessibilityLabel={守護文字}
+        accessibilityLabel={行走分析.主文字}
         style={樣式.守護提示區}
       >
         <Text style={樣式.守護符號}>{守護符號}</Text>
-        <Text style={樣式.守護主文字}>{守護文字}</Text>
+        <Text style={樣式.守護主文字}>{行走分析.主文字}</Text>
+        <Text style={樣式.守護副文字}>{行走分析.說明文字}</Text>
+        <View style={樣式.資料列}>
+          <Text style={樣式.資料文字}>步數 {行走分析.步數}</Text>
+          <Text style={樣式.資料文字}>步頻 {行走分析.步頻.toFixed(0)} 步/分</Text>
+          <Text style={樣式.資料文字}>步速 {行走分析.即時步速.toFixed(2)} m/s</Text>
+        </View>
         <Text style={樣式.守護秒數文字}>
-          {剩餘綠燈秒數 === null
-            ? `需要 ${安全穿越所需秒數.toFixed(0)} 秒`
-            : `綠燈剩 ${剩餘綠燈秒數} 秒，需要 ${安全穿越所需秒數.toFixed(0)} 秒`}
+          穩定分數 {行走分析.穩定分數}｜{行走分析.資料來源}
         </Text>
+        <Text style={樣式.本機提示文字}>僅使用手機步行資料，不使用攝像頭</Text>
       </View>
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel="結束散步"
+        accessibilityLabel="結束分析"
         onPress={結束散步}
         style={({ pressed }) => [
           樣式.結束按鈕,
           pressed && 樣式.結束按下狀態,
         ]}
       >
-        <Text style={樣式.結束按鈕文字}>結束散步</Text>
+        <Text style={樣式.結束按鈕文字}>結束分析</Text>
       </Pressable>
     </View>
   );
@@ -409,7 +546,7 @@ const 樣式 = StyleSheet.create({
   },
   首頁按鈕文字: {
     color: '#000000',
-    fontSize: 52,
+    fontSize: 50,
     fontWeight: '900',
     textAlign: 'center',
   },
@@ -425,38 +562,62 @@ const 樣式 = StyleSheet.create({
   守護畫面: {
     flex: 1,
   },
-  隱藏相機: {
-    ...StyleSheet.absoluteFillObject,
-    opacity: 0,
-  },
   守護提示區: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 24,
-    paddingBottom: 112,
+    paddingBottom: 116,
   },
   守護符號: {
     color: '#FFFFFF',
-    fontSize: 160,
+    fontSize: 152,
     fontWeight: '900',
-    lineHeight: 170,
+    lineHeight: 162,
     textAlign: 'center',
   },
   守護主文字: {
     color: '#FFFFFF',
-    fontSize: 48,
+    fontSize: 46,
     fontWeight: '900',
-    lineHeight: 62,
-    marginTop: 12,
+    lineHeight: 58,
+    marginTop: 10,
     textAlign: 'center',
   },
-  守護秒數文字: {
+  守護副文字: {
     color: '#FFFFFF',
     fontSize: 28,
     fontWeight: '800',
     lineHeight: 38,
-    marginTop: 22,
+    marginTop: 14,
+    textAlign: 'center',
+  },
+  資料列: {
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 24,
+  },
+  資料文字: {
+    color: '#FFFFFF',
+    fontSize: 24,
+    fontWeight: '900',
+    textAlign: 'center',
+  },
+  守護秒數文字: {
+    color: '#FFFFFF',
+    fontSize: 23,
+    fontWeight: '800',
+    lineHeight: 32,
+    marginTop: 20,
+    textAlign: 'center',
+  },
+  本機提示文字: {
+    color: '#FFFFFF',
+    fontSize: 19,
+    fontWeight: '800',
+    lineHeight: 28,
+    marginTop: 12,
+    opacity: 0.92,
     textAlign: 'center',
   },
   結束按鈕: {
