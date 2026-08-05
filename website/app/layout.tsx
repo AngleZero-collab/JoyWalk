@@ -7,7 +7,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const 主機 = 標頭.get("x-forwarded-host") ?? 標頭.get("host") ?? "localhost:3000";
   const 協定 = 主機.includes("localhost") ? "http" : "https";
   const 網站網址 = new URL(`${協定}://${主機}`);
-  const 分享圖 = new URL("/og.png", 網站網址).toString();
+  const 分享圖 = new URL("/og.jpg", 網站網址).toString();
 
   return {
     metadataBase: 網站網址,

@@ -44,7 +44,7 @@ a {
 }
 
 .主視覺 {
-  background-image: url("/og.png");
+  background-image: url("/og.jpg");
   background-position: center;
   background-size: cover;
   color: var(--paper);

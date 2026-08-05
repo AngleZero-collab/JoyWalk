@@ -9,4 +9,4 @@ npm run dev
 npm run build
 ```
 
-主要頁面在 `app/page.tsx`，全站樣式在 `app/globals.css`，社群分享圖放在 `public/og.png`。
+主要頁面在 `app/page.tsx`，全站樣式在 `app/globals.css`，社群分享圖放在 `public/og.jpg`。
