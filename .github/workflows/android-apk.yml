@@ -37,7 +37,9 @@ jobs:
         run: npm ci
 
       - name: 產生 Android 原生專案
-        run: npx expo prebuild --platform android --clean --non-interactive
+        env:
+          CI: "1"
+        run: npx expo prebuild --platform android --clean
 
       - name: 建置 Debug APK
         working-directory: android
