@@ -7,23 +7,9 @@
     "userInterfaceStyle": "automatic",
     "plugins": [
       [
-        "expo-camera",
-        {
-          "cameraPermission": "AI 陪走夥伴需要使用相機在本機判讀行人號誌，不會上傳影像。",
-          "recordAudioAndroid": false,
-          "barcodeScannerEnabled": false
-        }
-      ],
-      [
-        "expo-location",
-        {
-          "locationWhenInUsePermission": "AI 陪走夥伴需要使用定位判斷是否進入路口守護情境。"
-        }
-      ],
-      [
         "expo-sensors",
         {
-          "motionPermission": "AI 陪走夥伴需要使用動作感測器測量步速。"
+          "motionPermission": "AI 陪走夥伴需要使用動作感測器分析步行狀態，不會上傳個人資料。"
         }
       ]
     ],
@@ -31,6 +17,12 @@
       "supportsTablet": true
     },
     "android": {
+      "package": "com.anglezero.safestride",
+      "versionCode": 1,
+      "permissions": [
+        "ACTIVITY_RECOGNITION",
+        "VIBRATE"
+      ],
       "adaptiveIcon": {
         "backgroundColor": "#000000"
       }

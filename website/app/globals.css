@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 :root {
-  --background: #f6f7f2;
+  --background: #f4f6f8;
   --foreground: #111111;
   --safe-green: #008000;
   --alert-red: #ff0000;
@@ -44,7 +44,7 @@ a {
 }
 
 .主視覺 {
-  background-image: url("/og.jpg");
+  background-image: var(--主視覺圖片);
   background-position: center;
   background-size: cover;
   color: var(--paper);
@@ -129,6 +129,15 @@ a {
   max-width: 760px;
 }
 
+.下載提示列 {
+  color: rgba(255, 255, 255, 0.86);
+  font-size: 18px;
+  font-weight: 850;
+  line-height: 1.55;
+  margin: 20px 0 0;
+  max-width: 760px;
+}
+
 .主視覺按鈕列 {
   display: flex;
   flex-wrap: wrap;
@@ -161,7 +170,8 @@ a {
 .痛點區塊,
 .示意區塊,
 .隱私區塊,
-.流程區塊 {
+.流程區塊,
+.下載區塊 {
   margin: 0 auto;
   max-width: 1180px;
   padding: 88px 24px;
@@ -198,7 +208,7 @@ h2 {
 .痛點卡片 strong {
   color: var(--alert-red);
   display: block;
-  font-size: 42px;
+  font-size: 34px;
   font-weight: 950;
   line-height: 1;
   margin-bottom: 18px;
@@ -217,6 +227,46 @@ p {
   font-size: 18px;
   font-weight: 650;
   line-height: 1.7;
+}
+
+.衛教盒 {
+  background: #111111;
+  border-radius: 8px;
+  margin-top: 28px;
+  padding: 30px;
+}
+
+.衛教盒 h3 {
+  color: var(--paper);
+  margin-bottom: 18px;
+}
+
+.衛教清單 {
+  display: grid;
+  gap: 12px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.衛教清單 li {
+  color: rgba(255, 255, 255, 0.88);
+  font-size: 19px;
+  font-weight: 800;
+  line-height: 1.55;
+  padding-left: 28px;
+  position: relative;
+}
+
+.衛教清單 li::before {
+  background: var(--signal-yellow);
+  border-radius: 999px;
+  content: "";
+  height: 10px;
+  left: 0;
+  position: absolute;
+  top: 10px;
+  width: 10px;
 }
 
 .示意區塊 {
@@ -380,7 +430,7 @@ p {
 }
 
 .流程清單 li {
-  align-items: center;
+  align-items: start;
   background: var(--paper);
   border: 1px solid var(--line);
   border-radius: 8px;
@@ -402,6 +452,38 @@ p {
   font-size: 22px;
   font-weight: 950;
   line-height: 1.25;
+}
+
+.流程清單 p {
+  grid-column: 2;
+  margin: -8px 0 0;
+}
+
+.下載區塊 {
+  align-items: center;
+  display: grid;
+  gap: 44px;
+  grid-template-columns: 1fr auto;
+}
+
+.下載區塊 p {
+  max-width: 760px;
+}
+
+.下載按鈕列 {
+  display: grid;
+  gap: 14px;
+  min-width: 260px;
+}
+
+.深色連結 {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.原始碼連結 {
+  border-color: var(--ink);
+  color: var(--ink);
 }
 
 .頁尾 {
@@ -451,8 +533,13 @@ p {
   .痛點卡片列,
   .示意區塊,
   .隱私格線,
-  .流程區塊 {
+  .流程區塊,
+  .下載區塊 {
     grid-template-columns: 1fr;
+  }
+
+  .下載按鈕列 {
+    min-width: 0;
   }
 
   .手機舞台 {
@@ -472,7 +559,8 @@ p {
   .痛點區塊,
   .示意區塊,
   .隱私區塊,
-  .流程區塊 {
+  .流程區塊,
+  .下載區塊 {
     padding-left: 18px;
     padding-right: 18px;
   }
@@ -491,7 +579,8 @@ p {
   }
 
   .痛點卡片,
-  .隱私項目 {
+  .隱私項目,
+  .衛教盒 {
     padding: 22px;
   }
 
