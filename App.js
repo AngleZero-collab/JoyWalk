@@ -26,6 +26,16 @@ const 守護結果 = {
   請勿通過: '請勿通過',
 };
 
+const 語音提示文字 = {
+  步速測量完成: '步速測量完成',
+  守護模式啟動: '守護模式啟動',
+  請允許相機權限: '請允許相機權限',
+  請允許定位權限: '請允許定位權限',
+  已結束散步: '已結束散步',
+  可以通過: '時間充足，安心通過',
+  請勿通過: '時間不夠，請退回！',
+};
+
 const 預設平均步速 = 0.8;
 const 斑馬線長度 = 20;
 const 模擬最短綠燈秒數 = 5;
@@ -35,6 +45,7 @@ export default function App() {
   const [目前畫面, 設定目前畫面] = useState(畫面.設定步速);
   const [平均步速, 設定平均步速] = useState(null);
   const [正在測量步速, 設定正在測量步速] = useState(false);
+  const [正在啟動守護, 設定正在啟動守護] = useState(false);
   const [加速度取樣次數, 設定加速度取樣次數] = useState(0);
   const [剩餘綠燈秒數, 設定剩餘綠燈秒數] = useState(null);
   const [守護狀態, 設定守護狀態] = useState(守護結果.等待判讀);
@@ -73,11 +84,11 @@ export default function App() {
     }
 
     if (守護狀態 === 守護結果.可以通過) {
-      發出語音提示('時間充足，安心通過');
+      發出語音提示(語音提示文字.可以通過);
     }
 
     if (守護狀態 === 守護結果.請勿通過) {
-      發出語音提示('時間不夠，請退回！');
+      發出語音提示(語音提示文字.請勿通過);
     }
   }, [目前畫面, 守護狀態, 剩餘綠燈秒數]);
 
@@ -108,18 +119,42 @@ export default function App() {
     AccessibilityInfo.announceForAccessibility(提示文字);
   }
 
+  function 判斷是否可以通過(本次剩餘秒數, 本次所需秒數) {
+    // 數學公式：安全穿越所需秒數 = 斑馬線長度（公尺） / 使用者平均步速（公尺/秒）。
+    // 決策規則：剩餘綠燈秒數足夠時才建議通過，否則請使用者退回等待。
+    return 本次剩餘秒數 >= 本次所需秒數;
+  }
+
+  function 觸發守護震動(本次守護結果) {
+    Vibration.cancel();
+
+    if (本次守護結果 === 守護結果.可以通過) {
+      Vibration.vibrate();
+      return;
+    }
+
+    if (本次守護結果 === 守護結果.請勿通過) {
+      Vibration.vibrate([500, 500, 500]);
+    }
+  }
+
   async function 開始測量步速() {
     設定權限提示('');
     設定正在測量步速(true);
     設定加速度取樣次數(0);
 
     try {
-      await Accelerometer.requestPermissionsAsync();
-      Accelerometer.setUpdateInterval(250);
-      加速度訂閱.current = Accelerometer.addListener(() => {
-        // Demo 只模擬收集加速度資料；正式版可由取樣峰值估算步頻與步幅。
-        設定加速度取樣次數((目前次數) => 目前次數 + 1);
-      });
+      const 加速度權限 = await Accelerometer.requestPermissionsAsync();
+
+      if (加速度權限.granted) {
+        Accelerometer.setUpdateInterval(250);
+        加速度訂閱.current = Accelerometer.addListener(() => {
+          // Demo 只模擬收集加速度資料；正式版可由取樣峰值估算步頻與步幅。
+          設定加速度取樣次數((目前次數) => 目前次數 + 1);
+        });
+      } else {
+        設定權限提示('未允許動作感測器，將使用示範步速。');
+      }
     } catch (錯誤) {
       設定權限提示('無法讀取動作感測器，將使用示範步速。');
     }
@@ -128,43 +163,51 @@ export default function App() {
       清除步速測量資源();
       設定平均步速(預設平均步速);
       設定正在測量步速(false);
-      發出語音提示('步速測量完成');
+      發出語音提示(語音提示文字.步速測量完成);
       設定目前畫面(畫面.首頁待機);
     }, 3000);
   }
 
   async function 開始散步守護() {
     設定權限提示('');
+    設定正在啟動守護(true);
 
-    const 相機結果 = 相機權限狀態?.granted
-      ? 相機權限狀態
-      : await 請求相機權限();
+    try {
+      const 相機結果 = 相機權限狀態?.granted
+        ? 相機權限狀態
+        : await 請求相機權限();
 
-    if (!相機結果?.granted) {
-      設定權限提示('請允許相機權限，才能在本機判讀號誌。');
-      發出語音提示('請允許相機權限');
-      return;
+      if (!相機結果?.granted) {
+        設定權限提示('請允許相機權限，才能在本機判讀號誌。');
+        發出語音提示(語音提示文字.請允許相機權限);
+        return;
+      }
+
+      const 定位結果 = await Location.requestForegroundPermissionsAsync();
+
+      if (定位結果.status !== 'granted') {
+        設定權限提示('請允許定位權限，才能啟動路口守護模式。');
+        發出語音提示(語音提示文字.請允許定位權限);
+        return;
+      }
+
+      設定守護狀態(守護結果.等待判讀);
+      設定剩餘綠燈秒數(null);
+      發出語音提示(語音提示文字.守護模式啟動);
+      設定目前畫面(畫面.過馬路守護);
+    } catch (錯誤) {
+      設定權限提示('啟動守護模式失敗，請確認相機與定位權限。');
+    } finally {
+      設定正在啟動守護(false);
     }
-
-    const 定位結果 = await Location.requestForegroundPermissionsAsync();
-
-    if (定位結果.status !== 'granted') {
-      設定權限提示('請允許定位權限，才能啟動路口守護模式。');
-      發出語音提示('請允許定位權限');
-      return;
-    }
-
-    設定守護狀態(守護結果.等待判讀);
-    設定剩餘綠燈秒數(null);
-    發出語音提示('守護模式啟動');
-    設定目前畫面(畫面.過馬路守護);
   }
 
   function 結束散步() {
     清除守護資源();
     設定守護狀態(守護結果.等待判讀);
     設定剩餘綠燈秒數(null);
-    發出語音提示('已結束散步');
+    設定正在啟動守護(false);
+    發出語音提示(語音提示文字.已結束散步);
     設定目前畫面(畫面.首頁待機);
   }
 
@@ -183,15 +226,12 @@ export default function App() {
     const 本次剩餘秒數 = 產生模擬綠燈秒數();
     設定剩餘綠燈秒數(本次剩餘秒數);
 
-    // 數學公式：安全穿越所需秒數 = 斑馬線長度（公尺） / 使用者平均步速（公尺/秒）。
-    // 決策規則：剩餘綠燈秒數足夠時才建議通過，否則請使用者退回等待。
-    if (本次剩餘秒數 >= 安全穿越所需秒數) {
-      設定守護狀態(守護結果.可以通過);
-      Vibration.vibrate();
-    } else {
-      設定守護狀態(守護結果.請勿通過);
-      Vibration.vibrate([500, 500, 500]);
-    }
+    const 本次守護結果 = 判斷是否可以通過(本次剩餘秒數, 安全穿越所需秒數)
+      ? 守護結果.可以通過
+      : 守護結果.請勿通過;
+
+    設定守護狀態(本次守護結果);
+    觸發守護震動(本次守護結果);
 
     // 影格處理完畢後立即清除參照，避免留下可識別的隱私資料。
     本次影格 = null;
@@ -239,13 +279,17 @@ export default function App() {
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="出門散步去"
+            disabled={正在啟動守護}
             onPress={開始散步守護}
             style={({ pressed }) => [
               樣式.首頁巨大按鈕,
-              pressed && 樣式.按下狀態,
+              正在啟動守護 && 樣式.停用按鈕,
+              pressed && !正在啟動守護 && 樣式.按下狀態,
             ]}
           >
-            <Text style={樣式.首頁按鈕文字}>出門散步去</Text>
+            <Text style={樣式.首頁按鈕文字}>
+              {正在啟動守護 ? '啟動中...' : '出門散步去'}
+            </Text>
           </Pressable>
           {!!權限提示 && <Text style={樣式.提示文字}>{權限提示}</Text>}
         </View>
@@ -267,7 +311,7 @@ export default function App() {
     <View style={[樣式.守護畫面, { backgroundColor: 守護背景色 }]}>
       <StatusBar hidden />
       <CameraView
-        active
+        active={目前畫面 === 畫面.過馬路守護}
         animateShutter={false}
         facing="back"
         style={樣式.隱藏相機}
