@@ -1,0 +1,24 @@
+{
+  "name": "ai-walk-buddy-demo",
+  "version": "1.0.0",
+  "private": true,
+  "main": "node_modules/expo/AppEntry.js",
+  "scripts": {
+    "start": "expo start",
+    "android": "expo start --android",
+    "ios": "expo start --ios",
+    "web": "expo start --web",
+    "site:dev": "npm --prefix website run dev",
+    "site:build": "npm --prefix website run build"
+  },
+  "dependencies": {
+    "expo": "~57.0.0",
+    "expo-camera": "~57.0.3",
+    "expo-location": "~57.0.5",
+    "expo-sensors": "~57.0.2",
+    "react": "19.2.3",
+    "react-native": "0.86.2"
+  },
+  "devDependencies": {},
+  "license": "UNLICENSED"
+}

@@ -1,0 +1,39 @@
+{
+  "expo": {
+    "name": "AI 陪走夥伴",
+    "slug": "ai-walk-buddy-demo",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "plugins": [
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "AI 陪走夥伴需要使用相機在本機判讀行人號誌，不會上傳影像。",
+          "recordAudioAndroid": false,
+          "barcodeScannerEnabled": false
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "AI 陪走夥伴需要使用定位判斷是否進入路口守護情境。"
+        }
+      ],
+      [
+        "expo-sensors",
+        {
+          "motionPermission": "AI 陪走夥伴需要使用動作感測器測量步速。"
+        }
+      ]
+    ],
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#000000"
+      }
+    }
+  }
+}

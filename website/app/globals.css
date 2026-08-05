@@ -1,0 +1,506 @@
+@import "tailwindcss";
+
+:root {
+  --background: #f6f7f2;
+  --foreground: #111111;
+  --safe-green: #008000;
+  --alert-red: #ff0000;
+  --signal-yellow: #ffd43b;
+  --ink: #111111;
+  --paper: #ffffff;
+  --line: rgba(17, 17, 17, 0.14);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family:
+    "Noto Sans TC", "Microsoft JhengHei", "PingFang TC", Arial, Helvetica,
+    sans-serif;
+  margin: 0;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.網站頁面 {
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+.主視覺 {
+  background-image: url("/og.png");
+  background-position: center;
+  background-size: cover;
+  color: var(--paper);
+  min-height: 86svh;
+  position: relative;
+}
+
+.主視覺遮罩 {
+  background:
+    linear-gradient(90deg, rgba(0, 0, 0, 0.82), rgba(0, 0, 0, 0.42) 52%, rgba(0, 0, 0, 0.08)),
+    linear-gradient(180deg, rgba(0, 0, 0, 0.22), rgba(0, 0, 0, 0.48));
+  inset: 0;
+  position: absolute;
+}
+
+.導覽列,
+.主視覺內容 {
+  position: relative;
+  z-index: 1;
+}
+
+.導覽列 {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+  margin: 0 auto;
+  max-width: 1180px;
+  padding: 24px;
+}
+
+.品牌標記 {
+  font-size: 22px;
+  font-weight: 900;
+}
+
+.導覽連結 {
+  display: flex;
+  gap: 22px;
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.導覽連結 a {
+  border-bottom: 2px solid transparent;
+  padding-bottom: 6px;
+}
+
+.導覽連結 a:focus-visible,
+.導覽連結 a:hover {
+  border-color: var(--signal-yellow);
+  outline: none;
+}
+
+.主視覺內容 {
+  margin: 0 auto;
+  max-width: 1180px;
+  padding: clamp(72px, 12vw, 150px) 24px 96px;
+}
+
+.前導文字 {
+  color: var(--signal-yellow);
+  font-size: 16px;
+  font-weight: 900;
+  letter-spacing: 0;
+  margin: 0 0 14px;
+}
+
+.主視覺 h1 {
+  font-size: clamp(56px, 10vw, 116px);
+  font-weight: 950;
+  letter-spacing: 0;
+  line-height: 1;
+  margin: 0;
+  max-width: 760px;
+}
+
+.主標副文 {
+  font-size: clamp(22px, 3vw, 36px);
+  font-weight: 800;
+  line-height: 1.35;
+  margin: 28px 0 0;
+  max-width: 760px;
+}
+
+.主視覺按鈕列 {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-top: 34px;
+}
+
+.主要連結,
+.次要連結 {
+  align-items: center;
+  border-radius: 8px;
+  display: inline-flex;
+  font-size: 18px;
+  font-weight: 900;
+  justify-content: center;
+  min-height: 56px;
+  padding: 0 24px;
+}
+
+.主要連結 {
+  background: var(--paper);
+  color: var(--ink);
+}
+
+.次要連結 {
+  border: 2px solid rgba(255, 255, 255, 0.72);
+  color: var(--paper);
+}
+
+.痛點區塊,
+.示意區塊,
+.隱私區塊,
+.流程區塊 {
+  margin: 0 auto;
+  max-width: 1180px;
+  padding: 88px 24px;
+}
+
+.區塊標題列 {
+  max-width: 820px;
+}
+
+h2 {
+  color: var(--ink);
+  font-size: clamp(34px, 5vw, 64px);
+  font-weight: 950;
+  letter-spacing: 0;
+  line-height: 1.08;
+  margin: 0;
+}
+
+.痛點卡片列 {
+  display: grid;
+  gap: 18px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-top: 38px;
+}
+
+.痛點卡片,
+.隱私項目 {
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 28px;
+}
+
+.痛點卡片 strong {
+  color: var(--alert-red);
+  display: block;
+  font-size: 42px;
+  font-weight: 950;
+  line-height: 1;
+  margin-bottom: 18px;
+}
+
+h3 {
+  color: var(--ink);
+  font-size: 24px;
+  font-weight: 950;
+  line-height: 1.2;
+  margin: 0 0 12px;
+}
+
+p {
+  color: rgba(17, 17, 17, 0.74);
+  font-size: 18px;
+  font-weight: 650;
+  line-height: 1.7;
+}
+
+.示意區塊 {
+  align-items: center;
+  display: grid;
+  gap: 56px;
+  grid-template-columns: 0.9fr 1.1fr;
+}
+
+.示意文字 p:not(.前導文字) {
+  max-width: 560px;
+}
+
+.公式盒 {
+  background: #111111;
+  border-radius: 8px;
+  color: var(--paper);
+  margin-top: 28px;
+  max-width: 520px;
+  padding: 22px 24px;
+}
+
+.公式盒 span {
+  color: var(--signal-yellow);
+  display: block;
+  font-size: 15px;
+  font-weight: 900;
+  margin-bottom: 8px;
+}
+
+.公式盒 strong {
+  display: block;
+  font-size: clamp(28px, 4vw, 44px);
+  font-weight: 950;
+  line-height: 1.1;
+}
+
+.手機舞台 {
+  align-items: center;
+  display: grid;
+  grid-template-columns: 1fr 0.78fr;
+  min-height: 560px;
+  position: relative;
+}
+
+.手機外框 {
+  background: #101010;
+  border: 5px solid #050505;
+  border-radius: 36px;
+  box-shadow: 0 30px 70px rgba(0, 0, 0, 0.26);
+  overflow: hidden;
+  padding: 14px;
+  position: relative;
+}
+
+.主要手機 {
+  aspect-ratio: 9 / 18.6;
+  max-width: 330px;
+  width: min(72vw, 330px);
+  z-index: 2;
+}
+
+.警示手機 {
+  aspect-ratio: 9 / 18.6;
+  max-width: 250px;
+  transform: translateX(-18px);
+  width: min(44vw, 250px);
+  z-index: 1;
+}
+
+.手機聽筒 {
+  background: #050505;
+  border-radius: 999px;
+  height: 22px;
+  left: 50%;
+  position: absolute;
+  top: 20px;
+  transform: translateX(-50%);
+  width: 92px;
+  z-index: 3;
+}
+
+.手機畫面 {
+  align-items: center;
+  border-radius: 26px;
+  color: var(--paper);
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  justify-content: center;
+  padding: 42px 22px 30px;
+  text-align: center;
+}
+
+.綠燈畫面 {
+  background: var(--safe-green);
+}
+
+.紅燈畫面 {
+  background: var(--alert-red);
+}
+
+.狀態小字,
+.秒數列 {
+  background: rgba(0, 0, 0, 0.22);
+  border-radius: 999px;
+  font-size: 15px;
+  font-weight: 900;
+  padding: 8px 13px;
+}
+
+.巨大符號 {
+  color: var(--paper);
+  font-size: clamp(82px, 12vw, 144px);
+  font-weight: 950;
+  line-height: 1;
+  margin: 36px 0 20px;
+}
+
+.手機畫面 strong {
+  color: var(--paper);
+  font-size: clamp(28px, 4vw, 42px);
+  font-weight: 950;
+  line-height: 1.12;
+  margin-bottom: 22px;
+}
+
+.隱私區塊 {
+  background:
+    linear-gradient(135deg, rgba(0, 128, 0, 0.08), rgba(255, 212, 59, 0.2));
+  max-width: none;
+}
+
+.隱私區塊 > * {
+  margin-left: auto;
+  margin-right: auto;
+  max-width: 1180px;
+}
+
+.隱私格線 {
+  display: grid;
+  gap: 18px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-top: 38px;
+}
+
+.流程區塊 {
+  align-items: start;
+  display: grid;
+  gap: 48px;
+  grid-template-columns: 0.9fr 1.1fr;
+}
+
+.流程清單 {
+  counter-reset: item;
+  display: grid;
+  gap: 14px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.流程清單 li {
+  align-items: center;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: grid;
+  gap: 18px;
+  grid-template-columns: 62px 1fr;
+  min-height: 82px;
+  padding: 16px 20px;
+}
+
+.流程清單 span {
+  color: var(--safe-green);
+  font-size: 24px;
+  font-weight: 950;
+}
+
+.流程清單 strong {
+  color: var(--ink);
+  font-size: 22px;
+  font-weight: 950;
+  line-height: 1.25;
+}
+
+.頁尾 {
+  align-items: center;
+  background: #111111;
+  color: var(--paper);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 20px;
+  justify-content: space-between;
+  padding: 28px 24px;
+}
+
+.頁尾 strong,
+.頁尾 span {
+  margin-left: auto;
+  margin-right: auto;
+  max-width: 1180px;
+}
+
+.頁尾 strong {
+  font-size: 22px;
+  font-weight: 950;
+}
+
+.頁尾 span {
+  color: rgba(255, 255, 255, 0.76);
+  font-size: 16px;
+  font-weight: 800;
+}
+
+@media (max-width: 900px) {
+  .導覽連結 {
+    display: none;
+  }
+
+  .主視覺 {
+    min-height: 84svh;
+  }
+
+  .主視覺遮罩 {
+    background:
+      linear-gradient(180deg, rgba(0, 0, 0, 0.76), rgba(0, 0, 0, 0.42)),
+      linear-gradient(90deg, rgba(0, 0, 0, 0.42), rgba(0, 0, 0, 0.08));
+  }
+
+  .痛點卡片列,
+  .示意區塊,
+  .隱私格線,
+  .流程區塊 {
+    grid-template-columns: 1fr;
+  }
+
+  .手機舞台 {
+    grid-template-columns: 1fr;
+    justify-items: center;
+    min-height: auto;
+  }
+
+  .警示手機 {
+    margin-top: -96px;
+    transform: translateX(80px) rotate(3deg);
+  }
+}
+
+@media (max-width: 560px) {
+  .主視覺內容,
+  .痛點區塊,
+  .示意區塊,
+  .隱私區塊,
+  .流程區塊 {
+    padding-left: 18px;
+    padding-right: 18px;
+  }
+
+  .主視覺 h1 {
+    font-size: 54px;
+  }
+
+  .主標副文 {
+    font-size: 22px;
+  }
+
+  .主要連結,
+  .次要連結 {
+    width: 100%;
+  }
+
+  .痛點卡片,
+  .隱私項目 {
+    padding: 22px;
+  }
+
+  .主要手機 {
+    width: min(82vw, 310px);
+  }
+
+  .警示手機 {
+    transform: translateX(54px) rotate(3deg);
+    width: min(58vw, 220px);
+  }
+}
