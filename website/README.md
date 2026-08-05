@@ -10,3 +10,5 @@ npm run build:pages
 ```
 
 主要頁面在 `app/page.tsx`，全站樣式在 `app/globals.css`，社群分享圖放在 `public/og.jpg`。
+
+GitHub Pages 由 `.github/workflows/deploy-pages.yml` 自動發布。
