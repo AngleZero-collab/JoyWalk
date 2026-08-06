@@ -1,21 +1,21 @@
 {
   "expo": {
-    "name": "高齡行人過馬路防護與步態分析",
+    "name": "SafeStride 安行",
     "slug": "safestride-senior-crossing",
-    "version": "1.2.0",
+    "version": "1.3.0",
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
     "plugins": [
       [
         "expo-sensors",
         {
-          "motionPermission": "AI 陪走夥伴需要使用動作感測器分析步行狀態，不會上傳個人資料。"
+          "motionPermission": "SafeStride 需要讀取動作感測器，用於本機步態分析與安全提醒。資料只在手機端運算。"
         }
       ],
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "SafeStride 安行需要使用目前位置判斷是否停在路口，並估算安全通過秒數。"
+          "locationWhenInUsePermission": "SafeStride 需要使用定位，在路口停等時估算安全通過秒數。定位資料不會上傳雲端。"
         }
       ],
       "expo-video"
@@ -25,7 +25,7 @@
     },
     "android": {
       "package": "com.anglezero.safestride",
-      "versionCode": 4,
+      "versionCode": 5,
       "permissions": [
         "ACTIVITY_RECOGNITION",
         "ACCESS_COARSE_LOCATION",

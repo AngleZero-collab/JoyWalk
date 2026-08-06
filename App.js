@@ -108,6 +108,10 @@ const 商店道具 = [
   { 名稱: '暖心圍巾', 稀有度: '普通', 價格: 60, 說明: '讓寵物看起來更有精神。' },
   { 名稱: '反光背心', 稀有度: '稀有', 價格: 150, 說明: '象徵夜間步行安全。' },
   { 名稱: '亮晶晶守護徽章', 稀有度: '亮晶晶特效', 價格: 300, 說明: '限定特效道具。' },
+  { 名稱: '7-ELEVEN 禮券 50 元', 稀有度: '實體獎勵', 價格: 120, 說明: '安全通行任務兌換，現場核銷。' },
+  { 名稱: '全家禮券 50 元', 稀有度: '實體獎勵', 價格: 120, 說明: '安全通行任務兌換，現場核銷。' },
+  { 名稱: '全聯禮券 50 元', 稀有度: '實體獎勵', 價格: 120, 說明: '安全通行任務兌換，現場核銷。' },
+  { 名稱: 'LINE POINTS 100 點', 稀有度: '實體獎勵', 價格: 180, 說明: '累積守規紀錄後兌換數位點數。' },
 ];
 
 const 抽卡池 = [
@@ -387,7 +391,7 @@ export default function App() {
     return {
       路寬公尺: 定位精準度 && 定位精準度 > 60 ? Math.max(保守路寬, 18) : 保守路寬,
       資料來源: '本機道路等級估算',
-      路口說明: '未上傳定位，使用保守路寬估算',
+      路口說明: '使用本機保守路寬估算',
       是否路口等待: true,
     };
   }
@@ -603,7 +607,7 @@ export default function App() {
 
     const 下一步態 = {
       狀態: 下一狀態,
-      主文字: 可以通過 ? '可以通過' : '請先停下',
+      主文字: 可以通過 ? '可以通過' : '建議兩段式過馬路',
       副文字: 可以通過
         ? '步態穩定，預估可在安全時間內通過'
         : '偵測到步態風險，建議退回等待',
@@ -660,7 +664,7 @@ export default function App() {
 
     if (本次步態.狀態 === 通行狀態.暫停等待) {
       Vibration.vibrate(強震提醒參考.current ? [0, 450, 180, 450, 180, 650] : [0, 300, 150, 300]);
-      發出語音提示('請先停下，偵測到步態風險。');
+      發出語音提示('建議兩段式過馬路，偵測到步態風險。');
     }
 
     上次狀態.current = 本次步態.狀態;
@@ -702,13 +706,13 @@ export default function App() {
     設定目前分頁(分頁.家屬設定);
   }
 
-  function 切換Demo通行狀態(下一狀態) {
+  function 切換展示通行狀態(下一狀態) {
     設定手動通行狀態(下一狀態);
     Vibration.vibrate(下一狀態 === 通行狀態.可以通過 ? 120 : [0, 260, 120, 260]);
     發出語音提示(
       下一狀態 === 通行狀態.可以通過
-        ? 'Demo 模式，可以通過。請確認燈號秒數足夠。'
-        : 'Demo 模式，不能通過。請退回等待。',
+        ? '可以通過。請確認燈號秒數足夠。'
+        : '建議兩段式過馬路。請退回等待。',
     );
   }
 
@@ -759,10 +763,10 @@ export default function App() {
     ? {
       ...步態,
       狀態: 手動通行狀態,
-      主文字: 手動通行狀態 === 通行狀態.可以通過 ? '可以通過' : '請先停下',
+      主文字: 手動通行狀態 === 通行狀態.可以通過 ? '可以通過' : '建議兩段式過馬路',
       副文字: 手動通行狀態 === 通行狀態.可以通過
-        ? 'Demo：秒數足夠，請穩定通過'
-        : 'Demo：秒數不足，請退回等待',
+        ? '秒數足夠，請穩定通過'
+        : '秒數不足，請退回等待',
       風險分數: 手動通行狀態 === 通行狀態.可以通過 ? 12 : 88,
     }
     : 步態;
@@ -771,10 +775,10 @@ export default function App() {
       ...路口資訊,
       所需秒數: 手動通行狀態 === 通行狀態.可以通過 ? Math.min(25, 路口資訊.所需秒數) : Math.max(25, 路口資訊.所需秒數),
       路口說明: 手動通行狀態 === 通行狀態.可以通過
-        ? 'Demo：綠燈秒數足夠，可安全通過'
-        : 'Demo：綠燈秒數不足，請不要起步',
-      資料來源: 'Demo 手動切換',
-      更新時間: 'Demo',
+        ? '綠燈秒數足夠，可安全通過'
+        : '綠燈秒數不足，建議兩段式過馬路',
+      資料來源: '本機即時判斷',
+      更新時間: '現在',
     }
     : 路口資訊;
   const 狀態顏色 = 展示步態.狀態 === 通行狀態.可以通過 ? '#008000' : '#FF0000';
@@ -810,8 +814,8 @@ export default function App() {
           狀態顏色={狀態顏色}
           狀態符號={狀態符號}
           交通紀錄={交通紀錄}
-          on可以通過={() => 切換Demo通行狀態(通行狀態.可以通過)}
-          on不能通過={() => 切換Demo通行狀態(通行狀態.暫停等待)}
+          on可以通過={() => 切換展示通行狀態(通行狀態.可以通過)}
+          on不能通過={() => 切換展示通行狀態(通行狀態.暫停等待)}
           on守規通過={記錄守規通行}
           on守規等待={記錄守規等待}
           on違規穿越={記錄違規穿越}
@@ -892,26 +896,21 @@ function 首頁畫面({
         <狀態膠囊 標籤="平均步速" 數值={`${步態.十分鐘平均步速.toFixed(2)} m/s`} />
         <狀態膠囊 標籤="風險分數" 數值={`${步態.風險分數}/100`} />
       </View>
-      <View style={樣式.Demo按鈕列}>
-        <Pressable style={[樣式.Demo切換按鈕, 樣式.Demo綠色按鈕]} onPress={on可以通過}>
-          <Text style={樣式.Demo按鈕文字}>Demo 可以通過</Text>
-        </Pressable>
-        <Pressable style={[樣式.Demo切換按鈕, 樣式.Demo紅色按鈕]} onPress={on不能通過}>
-          <Text style={樣式.Demo按鈕文字}>Demo 不能通過</Text>
-        </Pressable>
+      <View
+        pointerEvents="box-none"
+        style={樣式.隱藏展示控制區}
+        accessibilityElementsHidden
+        importantForAccessibility="no-hide-descendants"
+      >
+        <View style={樣式.隱藏控制列}>
+          <Pressable style={樣式.隱藏控制按鈕} onPress={on可以通過} />
+          <Pressable style={樣式.隱藏控制按鈕} onPress={on不能通過} />
+        </View>
+        <View style={樣式.隱藏控制列}>
+          <Pressable style={樣式.隱藏控制按鈕} onPress={可以通過 ? on守規通過 : on守規等待} />
+          <Pressable style={樣式.隱藏控制按鈕} onPress={on違規穿越} />
+        </View>
       </View>
-      <View style={樣式.守規按鈕列}>
-        <Pressable style={樣式.守規按鈕} onPress={可以通過 ? on守規通過 : on守規等待}>
-          <Text style={樣式.守規按鈕文字}>{可以通過 ? '已遵守並通過' : '已遵守等待'}</Text>
-        </Pressable>
-        <Pressable style={樣式.違規按鈕} onPress={on違規穿越}>
-          <Text style={樣式.違規按鈕文字}>模擬違規</Text>
-        </Pressable>
-      </View>
-      <Text style={樣式.首頁紀錄文字}>
-        成功通過 {交通紀錄.成功通過次數} 次｜連續守規 {交通紀錄.連續守規次數} 次｜違規 {交通紀錄.違規次數} 次
-      </Text>
-      <Text style={樣式.首頁隱私文字}>{路口資訊.資料來源}｜{路口資訊.更新時間}</Text>
     </ScrollView>
   );
 }
@@ -1010,7 +1009,7 @@ function 獎勵商店畫面({ 點數, 最後獎勵, on抽卡, on兌換 }) {
       )}
       {商店道具.map((道具) => (
         <View style={樣式.商店卡片} key={道具.名稱}>
-          <View>
+          <View style={樣式.商店文字區}>
             <Text style={樣式.商店名稱}>{道具.名稱}</Text>
             <Text style={樣式.商店說明}>{道具.稀有度}｜{道具.說明}</Text>
           </View>
@@ -1245,6 +1244,7 @@ const 樣式 = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 18,
     paddingBottom: 150,
+    position: 'relative',
   },
   首頁符號: {
     color: '#FFFFFF',
@@ -1308,85 +1308,22 @@ const 樣式 = StyleSheet.create({
     fontSize: 24,
     fontWeight: '900',
   },
-  首頁隱私文字: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '800',
-    lineHeight: 24,
-    marginTop: 20,
-    opacity: 0.9,
-    textAlign: 'center',
+  隱藏展示控制區: {
+    bottom: 128,
+    gap: 10,
+    left: 20,
+    position: 'absolute',
+    right: 20,
   },
-  Demo按鈕列: {
+  隱藏控制列: {
     flexDirection: 'row',
     gap: 10,
-    marginTop: 16,
-    width: '100%',
   },
-  Demo切換按鈕: {
-    alignItems: 'center',
-    borderRadius: 10,
-    borderWidth: 2,
-    flex: 1,
-    justifyContent: 'center',
-    minHeight: 52,
-    paddingHorizontal: 10,
-  },
-  Demo綠色按鈕: {
-    backgroundColor: 'rgba(0, 128, 0, 0.96)',
-    borderColor: '#FFFFFF',
-  },
-  Demo紅色按鈕: {
-    backgroundColor: 'rgba(255, 0, 0, 0.92)',
-    borderColor: '#FFFFFF',
-  },
-  Demo按鈕文字: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '900',
-    textAlign: 'center',
-  },
-  守規按鈕列: {
-    flexDirection: 'row',
-    gap: 10,
-    marginTop: 10,
-    width: '100%',
-  },
-  守規按鈕: {
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 10,
-    flex: 1.4,
-    justifyContent: 'center',
-    minHeight: 56,
-    paddingHorizontal: 12,
-  },
-  守規按鈕文字: {
-    color: '#111111',
-    fontSize: 18,
-    fontWeight: '900',
-  },
-  違規按鈕: {
-    alignItems: 'center',
-    backgroundColor: '#111111',
+  隱藏控制按鈕: {
+    backgroundColor: 'transparent',
     borderRadius: 10,
     flex: 1,
-    justifyContent: 'center',
-    minHeight: 56,
-    paddingHorizontal: 12,
-  },
-  違規按鈕文字: {
-    color: '#FFFFFF',
-    fontSize: 18,
-    fontWeight: '900',
-  },
-  首頁紀錄文字: {
-    color: '#FFFFFF',
-    fontSize: 15,
-    fontWeight: '900',
-    lineHeight: 22,
-    marginTop: 12,
-    textAlign: 'center',
+    minHeight: 58,
   },
   頁面捲動: {
     flex: 1,
@@ -1604,14 +1541,20 @@ const 樣式 = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderRadius: 18,
     flexDirection: 'row',
+    gap: 12,
     justifyContent: 'space-between',
     marginBottom: 12,
     padding: 18,
+  },
+  商店文字區: {
+    flex: 1,
+    paddingRight: 4,
   },
   商店名稱: {
     color: '#000000',
     fontSize: 21,
     fontWeight: '900',
+    lineHeight: 28,
   },
   商店說明: {
     color: '#666666',
@@ -1619,7 +1562,6 @@ const 樣式 = StyleSheet.create({
     fontWeight: '700',
     lineHeight: 22,
     marginTop: 4,
-    maxWidth: 210,
   },
   兌換按鈕: {
     backgroundColor: '#008000',
