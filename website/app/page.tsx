@@ -1,7 +1,7 @@
 import type { CSSProperties } from "react";
 
 const 網站路徑前綴 = process.env.NEXT_PUBLIC_SITE_BASE_PATH ?? "";
-const APK下載連結 = "https://github.com/AngleZero-collab/SafeStride/releases/latest";
+const APK下載連結 = "https://github.com/AngleZero-collab/SafeStride/releases/latest/download/SafeStride-mvp-release.apk";
 const 原始碼連結 = "https://github.com/AngleZero-collab/SafeStride";
 
 const 痛點列表 = [

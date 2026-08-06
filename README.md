@@ -27,10 +27,10 @@ npm run site:build:pages
 
 ## APK 下載
 
-GitHub Release 下載頁：
+APK 直接下載：
 
 ```text
-https://github.com/AngleZero-collab/SafeStride/releases/latest
+https://github.com/AngleZero-collab/SafeStride/releases/latest/download/SafeStride-mvp-release.apk
 ```
 
 若尚未建立 Release，可到 GitHub 的 `Actions` 執行 `產生 Android Release APK`，下載 `SafeStride-mvp-release-apk` artifact。正式 Release 檔名為 `SafeStride-mvp-release.apk`，已內含 JavaScript bundle，可直接安裝執行。
