@@ -12,6 +12,8 @@ import {
   Vibration,
   View,
 } from 'react-native';
+import * as Location from 'expo-location';
+import * as Speech from 'expo-speech';
 import { Accelerometer, Gyroscope, Pedometer } from 'expo-sensors';
 
 const 分頁 = {
@@ -35,7 +37,37 @@ const 樣本上限 = 120;
 const 預設斑馬線距離 = 20;
 const 預設通行秒數 = 30;
 const 預設步幅公尺 = 0.58;
+const 預設平均步速 = 0.8;
+const 緩衝秒數 = 5;
+const 停等速度門檻 = 0.25;
+const 地圖查詢冷卻毫秒 = 20000;
+const 十分鐘毫秒 = 10 * 60 * 1000;
+const 開放街圖查詢半徑 = 42;
 const 初始點數 = 120;
+
+const 道路等級寬度表 = {
+  motorway: 24,
+  trunk: 21,
+  primary: 18,
+  secondary: 16,
+  tertiary: 14,
+  unclassified: 10,
+  residential: 8,
+  living_street: 6,
+  service: 6,
+};
+
+const 初始路口資訊 = {
+  狀態: '等待 GPS',
+  是否路口等待: false,
+  路寬公尺: 16,
+  所需秒數: Math.ceil(16 / 預設平均步速 + 緩衝秒數),
+  緩衝秒數,
+  資料來源: '本機道路等級估算',
+  路口說明: '停在路口時自動估算',
+  定位精準度: null,
+  更新時間: '尚未更新',
+};
 
 const 初始步態 = {
   狀態: 通行狀態.收集中,
@@ -44,6 +76,7 @@ const 初始步態 = {
   步數: 0,
   步頻: 0,
   步速: 0,
+  十分鐘平均步速: 預設平均步速,
   步行步長: 預設步幅公尺,
   雙腳支撐時間: 0,
   步態不對稱性: 0,
@@ -83,6 +116,9 @@ export default function App() {
   const [目前分頁, 設定目前分頁] = useState(分頁.首頁);
   const [步態, 設定步態] = useState(初始步態);
   const [感測器啟用, 設定感測器啟用] = useState(true);
+  const [定位啟用, 設定定位啟用] = useState(true);
+  const [地圖查詢啟用, 設定地圖查詢啟用] = useState(false);
+  const [路口資訊, 設定路口資訊] = useState(初始路口資訊);
   const [強震提醒, 設定強震提醒] = useState(true);
   const [緊急聯絡人, 設定緊急聯絡人] = useState('');
   const [基準步幅文字, 設定基準步幅文字] = useState(String(預設步幅公尺));
@@ -100,12 +136,18 @@ export default function App() {
   const 加速度訂閱 = useRef(null);
   const 陀螺儀訂閱 = useRef(null);
   const 計步訂閱 = useRef(null);
+  const 位置訂閱 = useRef(null);
   const 分析計時器 = useRef(null);
   const 開始時間 = useRef(Date.now());
   const 累積步數 = useRef(0);
   const 上次狀態 = useRef(通行狀態.收集中);
   const 步態參考 = useRef(初始步態);
   const 強震提醒參考 = useRef(true);
+  const 路口資訊參考 = useRef(初始路口資訊);
+  const 步速樣本 = useRef([]);
+  const 上次地圖查詢時間 = useRef(0);
+  const 地圖查詢中 = useRef(false);
+  const 上次路口播報時間 = useRef(0);
 
   const 基準步幅 = useMemo(() => {
     const 數值 = Number.parseFloat(基準步幅文字);
@@ -117,8 +159,31 @@ export default function App() {
   }, [步態]);
 
   useEffect(() => {
+    路口資訊參考.current = 路口資訊;
+  }, [路口資訊]);
+
+  useEffect(() => {
     強震提醒參考.current = 強震提醒;
   }, [強震提醒]);
+
+  useEffect(() => {
+    if (!定位啟用) {
+      清除定位();
+      更新路口資訊({
+        ...路口資訊參考.current,
+        狀態: '定位已暫停',
+        是否路口等待: false,
+        路口說明: '家屬設定已關閉 GPS 路口提醒',
+      });
+      return undefined;
+    }
+
+    啟動定位();
+
+    return () => {
+      清除定位();
+    };
+  }, [定位啟用, 地圖查詢啟用]);
 
   useEffect(() => {
     if (!感測器啟用) {
@@ -141,6 +206,12 @@ export default function App() {
 
   function 發出語音提示(提示文字) {
     AccessibilityInfo.announceForAccessibility(提示文字);
+    Speech.stop();
+    Speech.speak(提示文字, {
+      language: 'zh-TW',
+      pitch: 1,
+      rate: 0.9,
+    });
   }
 
   function 清除感測器() {
@@ -167,6 +238,48 @@ export default function App() {
     加速度原始陣列.current = [];
     陀螺儀原始陣列.current = [];
     Vibration.cancel();
+  }
+
+  function 清除定位() {
+    if (位置訂閱.current) {
+      位置訂閱.current.remove();
+      位置訂閱.current = null;
+    }
+  }
+
+  async function 啟動定位() {
+    清除定位();
+
+    try {
+      const 權限 = await Location.requestForegroundPermissionsAsync();
+      if (權限.status !== 'granted') {
+        更新路口資訊({
+          ...路口資訊參考.current,
+          狀態: '請允許 GPS',
+          是否路口等待: false,
+          路口說明: '需要前景定位才能估算路口安全秒數',
+        });
+        return;
+      }
+
+      位置訂閱.current = await Location.watchPositionAsync(
+        {
+          accuracy: Location.Accuracy.Balanced,
+          timeInterval: 4000,
+          distanceInterval: 3,
+        },
+        (位置) => {
+          void 處理定位更新(位置);
+        },
+      );
+    } catch (錯誤) {
+      更新路口資訊({
+        ...路口資訊參考.current,
+        狀態: 'GPS 暫不可用',
+        是否路口等待: false,
+        路口說明: '目前無法讀取定位，先使用本機保守秒數',
+      });
+    }
   }
 
   async function 啟動感測器() {
@@ -221,6 +334,165 @@ export default function App() {
     }, 分析間隔毫秒);
 
     執行本機通行判斷();
+  }
+
+  function 更新路口資訊(下一路口資訊) {
+    路口資訊參考.current = 下一路口資訊;
+    設定路口資訊(下一路口資訊);
+  }
+
+  function 取得十分鐘平均步速() {
+    const 現在 = Date.now();
+    步速樣本.current = 步速樣本.current.filter((樣本) => 現在 - 樣本.時間 <= 十分鐘毫秒);
+    if (!步速樣本.current.length) {
+      return 預設平均步速;
+    }
+    return 平均值(步速樣本.current.map((樣本) => 樣本.步速));
+  }
+
+  function 記錄並取得十分鐘平均步速(步速) {
+    const 現在 = Date.now();
+    if (步速 >= 0.2) {
+      步速樣本.current.push({ 時間: 現在, 步速 });
+    }
+    return 取得十分鐘平均步速();
+  }
+
+  function 計算安全通過秒數(路寬公尺, 即時平均步速) {
+    // 安全秒數公式：Required Seconds = 路寬 D / 即時平均步速 V + 緩衝秒數。
+    // 這裡讀取最近 10 分鐘的移動平均步速，避免長輩停在路口時因瞬間速度接近 0 而算出不合理秒數。
+    const 安全步速 = Math.max(即時平均步速 || 預設平均步速, 0.25);
+    return Math.ceil(路寬公尺 / 安全步速 + 緩衝秒數);
+  }
+
+  function 本機估算路口寬度(定位精準度) {
+    const 目前平均步速 = 取得十分鐘平均步速();
+    const 保守路寬 = 目前平均步速 < 0.55 ? 18 : 16;
+    return {
+      路寬公尺: 定位精準度 && 定位精準度 > 60 ? Math.max(保守路寬, 18) : 保守路寬,
+      資料來源: '本機道路等級估算',
+      路口說明: '未上傳定位，使用保守路寬估算',
+      是否路口等待: true,
+    };
+  }
+
+  function 從道路標籤估算寬度(標籤 = {}) {
+    const 標記寬度 = Number.parseFloat(String(標籤.width ?? '').replace('m', ''));
+    if (Number.isFinite(標記寬度) && 標記寬度 >= 3) {
+      return 標記寬度;
+    }
+
+    const 車道數 = Number.parseFloat(標籤.lanes);
+    if (Number.isFinite(車道數) && 車道數 > 0) {
+      return Math.max(6, Math.min(28, 車道數 * 3.25 + 2));
+    }
+
+    return 道路等級寬度表[標籤.highway] ?? 12;
+  }
+
+  async function 查詢開放街圖路口資訊({ latitude, longitude }) {
+    const 查詢語法 = `
+      [out:json][timeout:5];
+      (
+        way(around:${開放街圖查詢半徑},${latitude},${longitude})["highway"];
+        node(around:${開放街圖查詢半徑},${latitude},${longitude})["highway"="crossing"];
+        node(around:${開放街圖查詢半徑},${latitude},${longitude})["highway"="traffic_signals"];
+        node(around:${開放街圖查詢半徑},${latitude},${longitude})["crossing"];
+      );
+      out tags center 12;
+    `;
+
+    const 回應 = await fetch('https://overpass-api.de/api/interpreter', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
+      body: `data=${encodeURIComponent(查詢語法)}`,
+    });
+
+    if (!回應.ok) {
+      throw new Error('開放街圖查詢失敗');
+    }
+
+    const 資料 = await 回應.json();
+    const 道路列表 = (資料.elements ?? []).filter((項目) => 項目.type === 'way' && 項目.tags?.highway);
+    const 路口節點列表 = (資料.elements ?? []).filter((項目) => 項目.type === 'node');
+    const 主要道路 = 道路列表
+      .map((道路) => ({
+        標籤: 道路.tags,
+        路寬公尺: 從道路標籤估算寬度(道路.tags),
+      }))
+      .sort((前, 後) => 後.路寬公尺 - 前.路寬公尺)[0];
+
+    return {
+      路寬公尺: 主要道路?.路寬公尺 ?? 16,
+      資料來源: 'OpenStreetMap 路寬估算',
+      路口說明: 路口節點列表.length ? '偵測到路口或行人穿越節點' : '偵測到附近道路，未找到明確路口節點',
+      是否路口等待: 路口節點列表.length > 0 || 道路列表.length >= 2,
+    };
+  }
+
+  function 播報路口秒數(下一路口資訊) {
+    const 現在 = Date.now();
+    if (!下一路口資訊.是否路口等待 || 現在 - 上次路口播報時間.current < 30000) {
+      return;
+    }
+
+    上次路口播報時間.current = 現在;
+    發出語音提示(
+      `前方路口需要 ${下一路口資訊.所需秒數} 秒才建議通過。請確認綠燈秒數足夠再起步。`,
+    );
+  }
+
+  async function 處理定位更新(位置) {
+    const { coords } = 位置;
+    const GPS速度 = Math.max(0, coords.speed ?? 0);
+    const 定位精準度 = coords.accuracy ?? null;
+    const 停等中 = GPS速度 <= 停等速度門檻;
+
+    if (!停等中) {
+      更新路口資訊({
+        ...路口資訊參考.current,
+        狀態: '步行中',
+        是否路口等待: false,
+        定位精準度,
+        路口說明: '偵測到移動中，暫不播報路口秒數',
+        更新時間: new Date().toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit' }),
+      });
+      return;
+    }
+
+    let 路寬結果 = 本機估算路口寬度(定位精準度);
+    const 現在 = Date.now();
+    if (地圖查詢啟用 && !地圖查詢中.current && 現在 - 上次地圖查詢時間.current >= 地圖查詢冷卻毫秒) {
+      地圖查詢中.current = true;
+      上次地圖查詢時間.current = 現在;
+      try {
+        路寬結果 = await 查詢開放街圖路口資訊(coords);
+      } catch (錯誤) {
+        路寬結果 = {
+          ...路寬結果,
+          路口說明: '地圖查詢失敗，改用本機保守路寬估算',
+        };
+      } finally {
+        地圖查詢中.current = false;
+      }
+    }
+
+    const 即時平均步速 = 取得十分鐘平均步速();
+    const 所需秒數 = 計算安全通過秒數(路寬結果.路寬公尺, 即時平均步速);
+    const 下一路口資訊 = {
+      狀態: 路寬結果.是否路口等待 ? '路口停等中' : '疑似路口停等',
+      是否路口等待: true,
+      路寬公尺: 路寬結果.路寬公尺,
+      所需秒數,
+      緩衝秒數,
+      資料來源: 路寬結果.資料來源,
+      路口說明: 路寬結果.路口說明,
+      定位精準度,
+      更新時間: new Date().toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit' }),
+    };
+
+    更新路口資訊(下一路口資訊);
+    播報路口秒數(下一路口資訊);
   }
 
   function 平均值(數列) {
@@ -297,6 +569,7 @@ export default function App() {
     const 加速度晃動 = 標準差(加速度快照.map((樣本) => 樣本.合成));
     const 旋轉晃動 = 標準差(陀螺儀快照.map((樣本) => 樣本.合成));
     const 步速 = Math.max(0, (步頻 * 基準步幅) / 60);
+    const 十分鐘平均步速 = 記錄並取得十分鐘平均步速(步速);
     const 步行步長 = Math.max(0.35, Math.min(0.9, 基準步幅 * (0.88 + Math.min(0.24, 步頻 / 500))));
     const 雙腳支撐時間 = Math.max(18, Math.min(48, 34 + 加速度晃動 * 18 - 步速 * 8));
     const 步態不對稱性 = Math.max(0.5, Math.min(12, 1.2 + 旋轉晃動 * 8 + Math.max(0, 0.5 - 步速) * 5));
@@ -321,6 +594,7 @@ export default function App() {
       步數: 目前步數,
       步頻,
       步速,
+      十分鐘平均步速,
       步行步長,
       雙腳支撐時間,
       步態不對稱性,
@@ -438,7 +712,7 @@ export default function App() {
         </Pressable>
       </View>
 
-      {目前分頁 === 分頁.首頁 && <首頁畫面 步態={步態} 狀態顏色={狀態顏色} 狀態符號={狀態符號} />}
+      {目前分頁 === 分頁.首頁 && <首頁畫面 步態={步態} 路口資訊={路口資訊} 狀態顏色={狀態顏色} 狀態符號={狀態符號} />}
       {目前分頁 === 分頁.數據紀錄 && <數據紀錄畫面 步態={步態} />}
       {目前分頁 === 分頁.寵物任務 && <寵物任務畫面 今日任務={今日任務} 步態={步態} 點數={點數} />}
       {目前分頁 === 分頁.獎勵商店 && (
@@ -452,10 +726,14 @@ export default function App() {
       {目前分頁 === 分頁.家屬設定 && 設定頁顯示 && (
         <家屬設定畫面
           感測器啟用={感測器啟用}
+          定位啟用={定位啟用}
+          地圖查詢啟用={地圖查詢啟用}
           強震提醒={強震提醒}
           緊急聯絡人={緊急聯絡人}
           基準步幅文字={基準步幅文字}
           on感測器切換={設定感測器啟用}
+          on定位切換={設定定位啟用}
+          on地圖查詢切換={設定地圖查詢啟用}
           on強震切換={設定強震提醒}
           on聯絡人變更={設定緊急聯絡人}
           on步幅變更={設定基準步幅文字}
@@ -476,18 +754,20 @@ export default function App() {
   );
 }
 
-function 首頁畫面({ 步態, 狀態顏色, 狀態符號 }) {
+function 首頁畫面({ 步態, 路口資訊, 狀態顏色, 狀態符號 }) {
   return (
     <View style={[樣式.首頁, { backgroundColor: 狀態顏色 }]}>
       <Text style={樣式.首頁符號}>{狀態符號}</Text>
+      <Text style={樣式.路口秒數標題}>此路口需</Text>
+      <Text style={樣式.路口秒數數字}>{路口資訊.所需秒數} 秒</Text>
       <Text style={樣式.首頁主文字}>{步態.主文字}</Text>
-      <Text style={樣式.首頁副文字}>{步態.副文字}</Text>
+      <Text style={樣式.首頁副文字}>{路口資訊.路口說明}</Text>
       <View style={樣式.首頁資料列}>
-        <狀態膠囊 標籤="預估穿越" 數值={`${步態.安全穿越秒數.toFixed(0)} 秒`} />
+        <狀態膠囊 標籤="估算路寬" 數值={`${路口資訊.路寬公尺.toFixed(0)} 公尺`} />
+        <狀態膠囊 標籤="平均步速" 數值={`${步態.十分鐘平均步速.toFixed(2)} m/s`} />
         <狀態膠囊 標籤="風險分數" 數值={`${步態.風險分數}/100`} />
-        <狀態膠囊 標籤="步速" 數值={`${步態.步速.toFixed(2)} m/s`} />
       </View>
-      <Text style={樣式.首頁隱私文字}>僅用本機加速度計與陀螺儀，即時運算後銷毀原始資料</Text>
+      <Text style={樣式.首頁隱私文字}>{路口資訊.資料來源}｜{路口資訊.更新時間}</Text>
     </View>
   );
 }
@@ -498,23 +778,31 @@ function 數據紀錄畫面({ 步態 }) {
       <Text style={樣式.頁面標題}>所有健康資料</Text>
       <View style={樣式.健康卡片}>
         <Text style={樣式.健康卡片標題}>步行步長</Text>
-        <Text style={樣式.健康數值}>{(步態.步行步長 * 39.37).toFixed(1)}<Text style={樣式.健康單位}> 英吋</Text></Text>
-        <迷你長條圖 數值列表={每日趨勢.map((項目) => 項目.步行步長)} 最大值={0.8} 顏色="#ff7a1a" />
+        <View style={樣式.健康內容列}>
+          <Text style={樣式.健康數值}>{(步態.步行步長 * 39.37).toFixed(1)}<Text style={樣式.健康單位}> 英吋</Text></Text>
+          <迷你長條圖 數值列表={每日趨勢.map((項目) => 項目.步行步長)} 最大值={0.8} 顏色="#ff7a1a" />
+        </View>
       </View>
       <View style={樣式.健康卡片}>
         <Text style={樣式.健康卡片標題}>步行速度</Text>
-        <Text style={樣式.健康數值}>{(步態.步速 * 3.6).toFixed(1)}<Text style={樣式.健康單位}> 公里/小時</Text></Text>
-        <迷你長條圖 數值列表={[0.4, 0.52, 0.61, 0.58, 0.66, 0.7, 步態.步速]} 最大值={1.2} 顏色="#ff7a1a" />
+        <View style={樣式.健康內容列}>
+          <Text style={樣式.健康數值}>{(步態.十分鐘平均步速 * 3.6).toFixed(1)}<Text style={樣式.健康單位}> 公里/小時</Text></Text>
+          <迷你長條圖 數值列表={[0.4, 0.52, 0.61, 0.58, 0.66, 0.7, 步態.十分鐘平均步速]} 最大值={1.2} 顏色="#ff7a1a" />
+        </View>
       </View>
       <View style={樣式.健康卡片}>
         <Text style={樣式.健康卡片標題}>雙腳支撐時間</Text>
-        <Text style={樣式.健康數值}>{步態.雙腳支撐時間.toFixed(1)}<Text style={樣式.健康單位}> %</Text></Text>
-        <迷你長條圖 數值列表={每日趨勢.map((項目) => 項目.雙腳支撐時間)} 最大值={50} 顏色="#ff7a1a" />
+        <View style={樣式.健康內容列}>
+          <Text style={樣式.健康數值}>{步態.雙腳支撐時間.toFixed(1)}<Text style={樣式.健康單位}> %</Text></Text>
+          <迷你長條圖 數值列表={每日趨勢.map((項目) => 項目.雙腳支撐時間)} 最大值={50} 顏色="#ff7a1a" />
+        </View>
       </View>
       <View style={樣式.健康卡片}>
         <Text style={樣式.健康卡片標題}>步態不對稱性</Text>
-        <Text style={樣式.健康數值}>{步態.步態不對稱性.toFixed(1)}<Text style={樣式.健康單位}> %</Text></Text>
-        <迷你長條圖 數值列表={每日趨勢.map((項目) => 項目.步態不對稱性)} 最大值={8} 顏色="#ff7a1a" />
+        <View style={樣式.健康內容列}>
+          <Text style={樣式.健康數值}>{步態.步態不對稱性.toFixed(1)}<Text style={樣式.健康單位}> %</Text></Text>
+          <迷你長條圖 數值列表={每日趨勢.map((項目) => 項目.步態不對稱性)} 最大值={8} 顏色="#ff7a1a" />
+        </View>
       </View>
       <View style={樣式.說明卡片}>
         <Text style={樣式.說明標題}>本機進階資料轉換</Text>
@@ -583,10 +871,14 @@ function 獎勵商店畫面({ 點數, 最後獎勵, on抽卡, on兌換 }) {
 
 function 家屬設定畫面({
   感測器啟用,
+  定位啟用,
+  地圖查詢啟用,
   強震提醒,
   緊急聯絡人,
   基準步幅文字,
   on感測器切換,
+  on定位切換,
+  on地圖查詢切換,
   on強震切換,
   on聯絡人變更,
   on步幅變更,
@@ -597,6 +889,8 @@ function 家屬設定畫面({
       <Text style={樣式.頁面標題}>家屬專用設定</Text>
       <Text style={樣式.設定提示}>此頁由右上角「家屬」長按開啟，避免長輩誤觸。</Text>
       <設定列 標題="啟用本機感測器" 說明="讀取加速度計、陀螺儀與計步器" 值={感測器啟用} onValueChange={on感測器切換} />
+      <設定列 標題="啟用 GPS 路口提醒" 說明="停在路口時估算安全通過秒數" 值={定位啟用} onValueChange={on定位切換} />
+      <設定列 標題="允許 OSM 路寬查詢" 說明="開啟後會用目前定位查詢 OpenStreetMap；關閉時只做本機保守估算" 值={地圖查詢啟用} onValueChange={on地圖查詢切換} />
       <設定列 標題="危險時強震提醒" 說明="步速驟降或晃動異常時啟動急促震動" 值={強震提醒} onValueChange={on強震切換} />
       <Text style={樣式.輸入標籤}>SOS 緊急聯絡人</Text>
       <TextInput
@@ -619,7 +913,7 @@ function 家屬設定畫面({
       <View style={樣式.隱私宣告卡片}>
         <Text style={樣式.說明標題}>本機運算隱私宣告</Text>
         <Text style={樣式.說明文字}>
-          所有加速度計、陀螺儀與步數資料只在手機本機端運算。每次分析後立即清空記憶體內原始陣列，不上傳雲端。後續 JNI / NDK / FFI 演算法也必須維持同樣原則。
+          加速度計、陀螺儀與步數資料只在手機本機端運算。每次分析後立即清空記憶體內原始陣列。OSM 路寬查詢預設關閉；開啟時才會用目前定位查詢地圖路寬。後續 JNI / NDK / FFI 演算法也必須維持同樣原則。
         </Text>
       </View>
       <Pressable style={樣式.關閉設定按鈕} onPress={on關閉}>
@@ -726,19 +1020,35 @@ const 樣式 = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 20,
-    paddingBottom: 112,
+    paddingBottom: 120,
   },
   首頁符號: {
     color: '#FFFFFF',
-    fontSize: 170,
+    fontSize: 118,
     fontWeight: '900',
-    lineHeight: 178,
+    lineHeight: 126,
+  },
+  路口秒數標題: {
+    color: '#FFFFFF',
+    fontSize: 34,
+    fontWeight: '900',
+    lineHeight: 42,
+    marginTop: 4,
+    textAlign: 'center',
+  },
+  路口秒數數字: {
+    color: '#FFFFFF',
+    fontSize: 72,
+    fontWeight: '900',
+    lineHeight: 82,
+    textAlign: 'center',
   },
   首頁主文字: {
     color: '#FFFFFF',
-    fontSize: 58,
+    fontSize: 46,
     fontWeight: '900',
-    lineHeight: 68,
+    lineHeight: 56,
+    marginTop: 8,
     textAlign: 'center',
   },
   首頁副文字: {
@@ -789,7 +1099,7 @@ const 樣式 = StyleSheet.create({
   },
   捲動內容: {
     padding: 22,
-    paddingBottom: 130,
+    paddingBottom: 180,
   },
   頁面標題: {
     color: '#000000',
@@ -802,7 +1112,7 @@ const 樣式 = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderRadius: 28,
     marginBottom: 16,
-    minHeight: 168,
+    minHeight: 188,
     padding: 24,
   },
   健康卡片標題: {
@@ -810,11 +1120,16 @@ const 樣式 = StyleSheet.create({
     fontSize: 25,
     fontWeight: '900',
   },
+  健康內容列: {
+    alignItems: 'stretch',
+    gap: 16,
+    marginTop: 20,
+  },
   健康數值: {
     color: '#000000',
-    fontSize: 52,
+    fontSize: 50,
     fontWeight: '900',
-    marginTop: 28,
+    lineHeight: 58,
   },
   健康單位: {
     color: '#8A8A8E',
@@ -822,24 +1137,21 @@ const 樣式 = StyleSheet.create({
     fontWeight: '900',
   },
   長條圖: {
-    position: 'absolute',
-    right: 22,
-    bottom: 28,
-    height: 82,
-    width: 170,
+    height: 50,
+    width: '100%',
     flexDirection: 'row',
     alignItems: 'flex-end',
     justifyContent: 'flex-end',
-    gap: 8,
+    gap: 9,
   },
   長條外框: {
-    width: 16,
-    height: 82,
+    width: 18,
+    height: 50,
     alignItems: 'center',
     justifyContent: 'flex-end',
   },
   長條: {
-    width: 16,
+    width: 18,
     borderRadius: 999,
   },
   說明卡片: {
