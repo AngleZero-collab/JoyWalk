@@ -1,6 +1,7 @@
 ﻿import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   AccessibilityInfo,
+  Modal,
   Pressable,
   SafeAreaView,
   ScrollView,
@@ -14,7 +15,11 @@ import {
 } from 'react-native';
 import * as Location from 'expo-location';
 import * as Speech from 'expo-speech';
+import { VideoView, useVideoPlayer } from 'expo-video';
 import { Accelerometer, Gyroscope, Pedometer } from 'expo-sensors';
+
+const 快樂視力龍影片 = require('./assets/happyDragonFix.mp4');
+const 生氣視力龍影片 = require('./assets/angry_dragon.mp4');
 
 const 分頁 = {
   首頁: '首頁',
@@ -119,6 +124,8 @@ export default function App() {
   const [定位啟用, 設定定位啟用] = useState(true);
   const [地圖查詢啟用, 設定地圖查詢啟用] = useState(false);
   const [路口資訊, 設定路口資訊] = useState(初始路口資訊);
+  const [手動通行狀態, 設定手動通行狀態] = useState(null);
+  const [鼓勵彈窗顯示, 設定鼓勵彈窗顯示] = useState(false);
   const [強震提醒, 設定強震提醒] = useState(true);
   const [緊急聯絡人, 設定緊急聯絡人] = useState('');
   const [基準步幅文字, 設定基準步幅文字] = useState(String(預設步幅公尺));
@@ -130,6 +137,15 @@ export default function App() {
     { 名稱: '連續 3 天步態不對稱性 < 2%', 進度: 0.66, 完成: false },
     { 名稱: '今日通行判斷皆無高風險', 進度: 0.8, 完成: false },
   ]);
+  const [交通紀錄, 設定交通紀錄] = useState({
+    成功通過次數: 0,
+    成功等待次數: 0,
+    違規次數: 0,
+    連續守規次數: 0,
+    連續違規次數: 0,
+    視力龍心情: '快樂',
+    最近事件: '等待今日通行紀錄',
+  });
 
   const 加速度原始陣列 = useRef([]);
   const 陀螺儀原始陣列 = useRef([]);
@@ -686,8 +702,83 @@ export default function App() {
     設定目前分頁(分頁.家屬設定);
   }
 
-  const 狀態顏色 = 步態.狀態 === 通行狀態.可以通過 ? '#008000' : '#FF0000';
-  const 狀態符號 = 步態.狀態 === 通行狀態.可以通過 ? '✓' : '!';
+  function 切換Demo通行狀態(下一狀態) {
+    設定手動通行狀態(下一狀態);
+    Vibration.vibrate(下一狀態 === 通行狀態.可以通過 ? 120 : [0, 260, 120, 260]);
+    發出語音提示(
+      下一狀態 === 通行狀態.可以通過
+        ? 'Demo 模式，可以通過。請確認燈號秒數足夠。'
+        : 'Demo 模式，不能通過。請退回等待。',
+    );
+  }
+
+  function 記錄守規通行() {
+    設定交通紀錄((目前) => ({
+      ...目前,
+      成功通過次數: 目前.成功通過次數 + 1,
+      連續守規次數: 目前.連續守規次數 + 1,
+      連續違規次數: 0,
+      視力龍心情: '快樂',
+      最近事件: '遵守秒數提醒並安全通過',
+    }));
+    設定點數((目前點數) => 目前點數 + 20);
+    設定鼓勵彈窗顯示(true);
+    發出語音提示('做得很好，你遵守交通規則並安全通過路口。視力龍為你加油。');
+  }
+
+  function 記錄守規等待() {
+    設定交通紀錄((目前) => ({
+      ...目前,
+      成功等待次數: 目前.成功等待次數 + 1,
+      連續守規次數: 目前.連續守規次數 + 1,
+      連續違規次數: 0,
+      視力龍心情: '快樂',
+      最近事件: '秒數不足時選擇等待',
+    }));
+    設定點數((目前點數) => 目前點數 + 8);
+    發出語音提示('很好，秒數不足時先等待，這是安全的選擇。');
+  }
+
+  function 記錄違規穿越() {
+    設定交通紀錄((目前) => {
+      const 連續違規次數 = 目前.連續違規次數 + 1;
+      return {
+        ...目前,
+        違規次數: 目前.違規次數 + 1,
+        連續守規次數: 0,
+        連續違規次數,
+        視力龍心情: 連續違規次數 >= 2 ? '生氣' : '快樂',
+        最近事件: '秒數不足仍嘗試穿越',
+      };
+    });
+    Vibration.vibrate([0, 420, 140, 420, 140, 620]);
+    發出語音提示('請注意，秒數不足時不要穿越路口。');
+  }
+
+  const 展示步態 = 手動通行狀態
+    ? {
+      ...步態,
+      狀態: 手動通行狀態,
+      主文字: 手動通行狀態 === 通行狀態.可以通過 ? '可以通過' : '請先停下',
+      副文字: 手動通行狀態 === 通行狀態.可以通過
+        ? 'Demo：秒數足夠，請穩定通過'
+        : 'Demo：秒數不足，請退回等待',
+      風險分數: 手動通行狀態 === 通行狀態.可以通過 ? 12 : 88,
+    }
+    : 步態;
+  const 展示路口資訊 = 手動通行狀態
+    ? {
+      ...路口資訊,
+      所需秒數: 手動通行狀態 === 通行狀態.可以通過 ? Math.min(25, 路口資訊.所需秒數) : Math.max(25, 路口資訊.所需秒數),
+      路口說明: 手動通行狀態 === 通行狀態.可以通過
+        ? 'Demo：綠燈秒數足夠，可安全通過'
+        : 'Demo：綠燈秒數不足，請不要起步',
+      資料來源: 'Demo 手動切換',
+      更新時間: 'Demo',
+    }
+    : 路口資訊;
+  const 狀態顏色 = 展示步態.狀態 === 通行狀態.可以通過 ? '#008000' : '#FF0000';
+  const 狀態符號 = 展示步態.狀態 === 通行狀態.可以通過 ? '✓' : '!';
 
   return (
     <SafeAreaView style={樣式.應用容器}>
@@ -712,9 +803,22 @@ export default function App() {
         </Pressable>
       </View>
 
-      {目前分頁 === 分頁.首頁 && <首頁畫面 步態={步態} 路口資訊={路口資訊} 狀態顏色={狀態顏色} 狀態符號={狀態符號} />}
+      {目前分頁 === 分頁.首頁 && (
+        <首頁畫面
+          步態={展示步態}
+          路口資訊={展示路口資訊}
+          狀態顏色={狀態顏色}
+          狀態符號={狀態符號}
+          交通紀錄={交通紀錄}
+          on可以通過={() => 切換Demo通行狀態(通行狀態.可以通過)}
+          on不能通過={() => 切換Demo通行狀態(通行狀態.暫停等待)}
+          on守規通過={記錄守規通行}
+          on守規等待={記錄守規等待}
+          on違規穿越={記錄違規穿越}
+        />
+      )}
       {目前分頁 === 分頁.數據紀錄 && <數據紀錄畫面 步態={步態} />}
-      {目前分頁 === 分頁.寵物任務 && <寵物任務畫面 今日任務={今日任務} 步態={步態} 點數={點數} />}
+      {目前分頁 === 分頁.寵物任務 && <寵物任務畫面 今日任務={今日任務} 步態={步態} 點數={點數} 交通紀錄={交通紀錄} />}
       {目前分頁 === 分頁.獎勵商店 && (
         <獎勵商店畫面
           點數={點數}
@@ -744,6 +848,12 @@ export default function App() {
         />
       )}
 
+      <鼓勵彈窗
+        顯示={鼓勵彈窗顯示}
+        成功次數={交通紀錄.成功通過次數}
+        on關閉={() => 設定鼓勵彈窗顯示(false)}
+      />
+
       <View style={樣式.底部導覽列}>
         <導覽按鈕 標籤="防護" 圖示="✓" 啟用={目前分頁 === 分頁.首頁} onPress={() => 設定目前分頁(分頁.首頁)} />
         <導覽按鈕 標籤="數據" 圖示="▥" 啟用={目前分頁 === 分頁.數據紀錄} onPress={() => 設定目前分頁(分頁.數據紀錄)} />
@@ -754,9 +864,24 @@ export default function App() {
   );
 }
 
-function 首頁畫面({ 步態, 路口資訊, 狀態顏色, 狀態符號 }) {
+function 首頁畫面({
+  步態,
+  路口資訊,
+  狀態顏色,
+  狀態符號,
+  交通紀錄,
+  on可以通過,
+  on不能通過,
+  on守規通過,
+  on守規等待,
+  on違規穿越,
+}) {
+  const 可以通過 = 步態.狀態 === 通行狀態.可以通過;
   return (
-    <View style={[樣式.首頁, { backgroundColor: 狀態顏色 }]}>
+    <ScrollView
+      style={[樣式.首頁捲動, { backgroundColor: 狀態顏色 }]}
+      contentContainerStyle={樣式.首頁}
+    >
       <Text style={樣式.首頁符號}>{狀態符號}</Text>
       <Text style={樣式.路口秒數標題}>此路口需</Text>
       <Text style={樣式.路口秒數數字}>{路口資訊.所需秒數} 秒</Text>
@@ -767,8 +892,27 @@ function 首頁畫面({ 步態, 路口資訊, 狀態顏色, 狀態符號 }) {
         <狀態膠囊 標籤="平均步速" 數值={`${步態.十分鐘平均步速.toFixed(2)} m/s`} />
         <狀態膠囊 標籤="風險分數" 數值={`${步態.風險分數}/100`} />
       </View>
+      <View style={樣式.Demo按鈕列}>
+        <Pressable style={[樣式.Demo切換按鈕, 樣式.Demo綠色按鈕]} onPress={on可以通過}>
+          <Text style={樣式.Demo按鈕文字}>Demo 可以通過</Text>
+        </Pressable>
+        <Pressable style={[樣式.Demo切換按鈕, 樣式.Demo紅色按鈕]} onPress={on不能通過}>
+          <Text style={樣式.Demo按鈕文字}>Demo 不能通過</Text>
+        </Pressable>
+      </View>
+      <View style={樣式.守規按鈕列}>
+        <Pressable style={樣式.守規按鈕} onPress={可以通過 ? on守規通過 : on守規等待}>
+          <Text style={樣式.守規按鈕文字}>{可以通過 ? '已遵守並通過' : '已遵守等待'}</Text>
+        </Pressable>
+        <Pressable style={樣式.違規按鈕} onPress={on違規穿越}>
+          <Text style={樣式.違規按鈕文字}>模擬違規</Text>
+        </Pressable>
+      </View>
+      <Text style={樣式.首頁紀錄文字}>
+        成功通過 {交通紀錄.成功通過次數} 次｜連續守規 {交通紀錄.連續守規次數} 次｜違規 {交通紀錄.違規次數} 次
+      </Text>
       <Text style={樣式.首頁隱私文字}>{路口資訊.資料來源}｜{路口資訊.更新時間}</Text>
-    </View>
+    </ScrollView>
   );
 }
 
@@ -814,16 +958,26 @@ function 數據紀錄畫面({ 步態 }) {
   );
 }
 
-function 寵物任務畫面({ 今日任務, 步態, 點數 }) {
-  const 寵物狀態 = 步態.狀態 === 通行狀態.可以通過 ? '開心守護中' : '提醒你先停下';
+function 寵物任務畫面({ 今日任務, 步態, 點數, 交通紀錄 }) {
+  const 寵物狀態 = 交通紀錄.視力龍心情 === '生氣'
+    ? '連續違規，視力龍生氣提醒'
+    : 步態.狀態 === 通行狀態.可以通過
+      ? '開心守護中'
+      : '提醒你先停下';
   return (
     <ScrollView style={樣式.頁面捲動} contentContainerStyle={樣式.捲動內容}>
       <Text style={樣式.頁面標題}>虛擬寵物與任務</Text>
       <View style={樣式.寵物卡片}>
-        <Text style={樣式.寵物圖示}>●</Text>
+        <視力龍影片 心情={交通紀錄.視力龍心情} />
         <Text style={樣式.寵物名稱}>安行夥伴</Text>
         <Text style={樣式.寵物狀態}>{寵物狀態}</Text>
         <Text style={樣式.點數文字}>目前點數 {點數} 點</Text>
+        <View style={樣式.交通紀錄列}>
+          <Text style={樣式.交通紀錄文字}>成功通過 {交通紀錄.成功通過次數} 次</Text>
+          <Text style={樣式.交通紀錄文字}>守規等待 {交通紀錄.成功等待次數} 次</Text>
+          <Text style={樣式.交通紀錄文字}>違規 {交通紀錄.違規次數} 次</Text>
+        </View>
+        <Text style={樣式.最近事件文字}>最近：{交通紀錄.最近事件}</Text>
       </View>
       {今日任務.map((任務) => (
         <View style={樣式.任務卡片} key={任務.名稱}>
@@ -923,6 +1077,72 @@ function 家屬設定畫面({
   );
 }
 
+function 視力龍影片({ 心情 }) {
+  const 快樂播放器 = useVideoPlayer(快樂視力龍影片, (播放器) => {
+    播放器.loop = true;
+    播放器.muted = true;
+    播放器.play();
+  });
+  const 生氣播放器 = useVideoPlayer(生氣視力龍影片, (播放器) => {
+    播放器.loop = true;
+    播放器.muted = true;
+  });
+
+  useEffect(() => {
+    if (心情 === '生氣') {
+      快樂播放器.pause();
+      生氣播放器.play();
+      return;
+    }
+
+    生氣播放器.pause();
+    快樂播放器.play();
+  }, [心情, 快樂播放器, 生氣播放器]);
+
+  return (
+    <View style={樣式.視力龍影片框}>
+      {心情 === '生氣' ? (
+        <VideoView
+          player={生氣播放器}
+          style={樣式.視力龍影片}
+          nativeControls={false}
+          contentFit="cover"
+        />
+      ) : (
+        <VideoView
+          player={快樂播放器}
+          style={樣式.視力龍影片}
+          nativeControls={false}
+          contentFit="cover"
+        />
+      )}
+    </View>
+  );
+}
+
+function 鼓勵彈窗({ 顯示, 成功次數, on關閉 }) {
+  if (!顯示) {
+    return null;
+  }
+
+  return (
+    <Modal visible={顯示} transparent animationType="fade" onRequestClose={on關閉}>
+      <View style={樣式.彈窗遮罩}>
+        <View style={樣式.彈窗卡片}>
+          <視力龍影片 心情="快樂" />
+          <Text style={樣式.彈窗標題}>視力龍為你加油</Text>
+          <Text style={樣式.彈窗文字}>
+            你剛剛遵守交通規則並安全通過路口，累積成功 {成功次數} 次。
+          </Text>
+          <Pressable style={樣式.彈窗按鈕} onPress={on關閉}>
+            <Text style={樣式.彈窗按鈕文字}>繼續安全散步</Text>
+          </Pressable>
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
 function 導覽按鈕({ 標籤, 圖示, 啟用, onPress }) {
   return (
     <Pressable style={[樣式.導覽按鈕, 啟用 && 樣式.導覽按鈕啟用]} onPress={onPress}>
@@ -1015,12 +1235,16 @@ const 樣式 = StyleSheet.create({
     fontSize: 14,
     fontWeight: '900',
   },
-  首頁: {
+  首頁捲動: {
     flex: 1,
+  },
+  首頁: {
+    flexGrow: 1,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 20,
-    paddingBottom: 120,
+    paddingTop: 18,
+    paddingBottom: 150,
   },
   首頁符號: {
     color: '#FFFFFF',
@@ -1091,6 +1315,77 @@ const 樣式 = StyleSheet.create({
     lineHeight: 24,
     marginTop: 20,
     opacity: 0.9,
+    textAlign: 'center',
+  },
+  Demo按鈕列: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 16,
+    width: '100%',
+  },
+  Demo切換按鈕: {
+    alignItems: 'center',
+    borderRadius: 10,
+    borderWidth: 2,
+    flex: 1,
+    justifyContent: 'center',
+    minHeight: 52,
+    paddingHorizontal: 10,
+  },
+  Demo綠色按鈕: {
+    backgroundColor: 'rgba(0, 128, 0, 0.96)',
+    borderColor: '#FFFFFF',
+  },
+  Demo紅色按鈕: {
+    backgroundColor: 'rgba(255, 0, 0, 0.92)',
+    borderColor: '#FFFFFF',
+  },
+  Demo按鈕文字: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '900',
+    textAlign: 'center',
+  },
+  守規按鈕列: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 10,
+    width: '100%',
+  },
+  守規按鈕: {
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 10,
+    flex: 1.4,
+    justifyContent: 'center',
+    minHeight: 56,
+    paddingHorizontal: 12,
+  },
+  守規按鈕文字: {
+    color: '#111111',
+    fontSize: 18,
+    fontWeight: '900',
+  },
+  違規按鈕: {
+    alignItems: 'center',
+    backgroundColor: '#111111',
+    borderRadius: 10,
+    flex: 1,
+    justifyContent: 'center',
+    minHeight: 56,
+    paddingHorizontal: 12,
+  },
+  違規按鈕文字: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: '900',
+  },
+  首頁紀錄文字: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '900',
+    lineHeight: 22,
+    marginTop: 12,
     textAlign: 'center',
   },
   頁面捲動: {
@@ -1181,6 +1476,17 @@ const 樣式 = StyleSheet.create({
   寵物圖示: {
     fontSize: 78,
   },
+  視力龍影片框: {
+    backgroundColor: '#F1F1F6',
+    borderRadius: 22,
+    height: 220,
+    overflow: 'hidden',
+    width: '100%',
+  },
+  視力龍影片: {
+    height: '100%',
+    width: '100%',
+  },
   寵物名稱: {
     color: '#000000',
     fontSize: 30,
@@ -1198,6 +1504,31 @@ const 樣式 = StyleSheet.create({
     fontSize: 22,
     fontWeight: '900',
     marginTop: 12,
+  },
+  交通紀錄列: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    justifyContent: 'center',
+    marginTop: 14,
+  },
+  交通紀錄文字: {
+    backgroundColor: '#F1F1F6',
+    borderRadius: 999,
+    color: '#111111',
+    fontSize: 14,
+    fontWeight: '900',
+    overflow: 'hidden',
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+  },
+  最近事件文字: {
+    color: '#555555',
+    fontSize: 16,
+    fontWeight: '800',
+    lineHeight: 24,
+    marginTop: 12,
+    textAlign: 'center',
   },
   點數文字深色: {
     color: '#008000',
@@ -1366,6 +1697,51 @@ const 樣式 = StyleSheet.create({
   關閉設定文字: {
     color: '#FFFFFF',
     fontSize: 22,
+    fontWeight: '900',
+  },
+  彈窗遮罩: {
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.72)',
+    flex: 1,
+    justifyContent: 'center',
+    padding: 22,
+  },
+  彈窗卡片: {
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    maxWidth: 420,
+    padding: 22,
+    width: '100%',
+  },
+  彈窗標題: {
+    color: '#000000',
+    fontSize: 30,
+    fontWeight: '900',
+    marginTop: 18,
+    textAlign: 'center',
+  },
+  彈窗文字: {
+    color: '#555555',
+    fontSize: 20,
+    fontWeight: '800',
+    lineHeight: 30,
+    marginTop: 10,
+    textAlign: 'center',
+  },
+  彈窗按鈕: {
+    alignItems: 'center',
+    backgroundColor: '#008000',
+    borderRadius: 12,
+    marginTop: 18,
+    minHeight: 56,
+    justifyContent: 'center',
+    paddingHorizontal: 22,
+    width: '100%',
+  },
+  彈窗按鈕文字: {
+    color: '#FFFFFF',
+    fontSize: 20,
     fontWeight: '900',
   },
   底部導覽列: {

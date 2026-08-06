@@ -2,7 +2,7 @@
   "expo": {
     "name": "高齡行人過馬路防護與步態分析",
     "slug": "safestride-senior-crossing",
-    "version": "1.1.0",
+    "version": "1.2.0",
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
     "plugins": [
@@ -17,14 +17,15 @@
         {
           "locationWhenInUsePermission": "SafeStride 安行需要使用目前位置判斷是否停在路口，並估算安全通過秒數。"
         }
-      ]
+      ],
+      "expo-video"
     ],
     "ios": {
       "supportsTablet": true
     },
     "android": {
       "package": "com.anglezero.safestride",
-      "versionCode": 3,
+      "versionCode": 4,
       "permissions": [
         "ACTIVITY_RECOGNITION",
         "ACCESS_COARSE_LOCATION",
