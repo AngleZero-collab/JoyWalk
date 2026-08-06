@@ -1,10 +1,10 @@
-# SafeStride 安行（AI 陪走夥伴）
+# SafeStride 安行（高齡行人過馬路防護與步態分析）
 
-SafeStride 安行是一個協助高齡行者判斷自身步行狀態的 MVP 專案。現階段不使用攝像頭、不使用定位，先以手機端步數、步頻與加速度資料做本機分析，並用高對比畫面、語音與震動提醒「步態穩定」或「請先停下休息」。
+SafeStride 安行是一個協助高齡行者判斷自身步行狀態的 MVP 專案。現階段不使用攝像頭、不使用定位，先以手機端步數、步頻、加速度與陀螺儀資料做本機分析，並用高對比畫面、語音與震動提醒「可以通過」或「請先停下」。
 
 ## 專案結構
 
-- `App.js`：Expo / React Native MVP App，包含步速測量、手機感測器權限請求、本機步行分析與震動提醒。
+- `App.js`：Expo / React Native MVP App，包含即時過馬路防護、進階步態分析、虛擬寵物任務、獎勵商店與家屬設定。
 - `website/`：GitHub Pages 介紹網站，包含高齡行者痛點、衛教宣傳、App 展示與 APK 下載入口。
 - `.github/workflows/android-apk.yml`：產生 Android APK 的 GitHub Actions workflow。
 - `.github/workflows/deploy-pages.yml`：部署 GitHub Pages 的 workflow。
@@ -33,7 +33,7 @@ GitHub Release 下載頁：
 https://github.com/AngleZero-collab/SafeStride/releases/latest
 ```
 
-若尚未建立 Release，可到 GitHub 的 `Actions` 執行 `產生 Android APK`，下載 `SafeStride-mvp-debug-apk` artifact。
+若尚未建立 Release，可到 GitHub 的 `Actions` 執行 `產生 Android Release APK`，下載 `SafeStride-mvp-release-apk` artifact。正式 Release 檔名為 `SafeStride-mvp-release.apk`，已內含 JavaScript bundle，可直接安裝執行。
 
 ## App 開發
 
@@ -44,7 +44,7 @@ npm start
 
 ## 目前 App 權限
 
-- 動作感測器：讀取加速度資料，分析步態穩定度。
+- 動作感測器：讀取加速度計與陀螺儀資料，分析步態穩定度。
 - 活動辨識 / 計步器：讀取手機端步數與步頻。
 - 震動：提供高對比畫面以外的觸覺提醒。
 

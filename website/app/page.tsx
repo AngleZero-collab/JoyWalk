@@ -86,10 +86,10 @@ export default function Home() {
         </nav>
 
         <div className="主視覺內容" id="top">
-          <p className="前導文字">高齡行者步行安全守護</p>
+          <p className="前導文字">AI 陪走夥伴 × SafeStride 安行</p>
           <h1>SafeStride 安行</h1>
           <p className="主標副文">
-            用手機端步數、步頻與加速度資料，協助高齡行者知道：現在步態是否穩定，是否該先停下休息。
+            把手機本身收集到的步數、步頻、加速度與陀螺儀資料，轉成高齡行者能立即理解的紅綠提醒：穩定就安心通過，異常就先停下。
           </p>
           <div className="主視覺按鈕列" aria-label="頁面快速連結">
             <a className="主要連結" href={APK下載連結}>
@@ -99,7 +99,7 @@ export default function Home() {
               看 App 示範
             </a>
           </div>
-          <p className="下載提示列">目前 MVP 不使用攝像頭、不使用定位，僅分析手機本身收集到的步行資料。</p>
+          <p className="下載提示列">不拍照、不定位、不上傳；所有步行資料只在手機本機即時分析。</p>
         </div>
       </section>
 
@@ -132,13 +132,13 @@ export default function Home() {
       <section className="示意區塊" id="app-demo" aria-labelledby="示意標題">
         <div className="示意文字">
           <p className="前導文字">App 展示</p>
-          <h2 id="示意標題">示範使用 App：先測步速，再看步態提醒。</h2>
+          <h2 id="示意標題">示範使用 App：首頁就是即時過馬路防護。</h2>
           <p>
-            App 不需要複雜操作。高齡使用者只要按下大型按鈕，手機就會讀取步行資料並以全螢幕紅綠色、語音與震動提醒目前狀態。
+            App 不需要複雜操作。高齡使用者開啟後，手機會讀取步行相關資料並以全螢幕紅綠色、語音與震動提醒目前狀態。
           </p>
           <div className="公式盒">
             <span>本機分析資料</span>
-            <strong>步數 + 步頻 + 加速度晃動</strong>
+            <strong>步數 + 步頻 + 加速度 + 陀螺儀</strong>
           </div>
         </div>
 
@@ -201,7 +201,7 @@ export default function Home() {
           <p className="前導文字">直接在手機試用</p>
           <h2 id="下載標題">下載 APK，安裝到 Android 手機測試。</h2>
           <p>
-            GitHub Actions 會產生測試版 APK。若尚未建立 Release，可先到 Actions 手動執行「產生 Android APK」並下載 artifact。
+            最新 Release APK 已把 App 程式碼打包進安裝檔，不需要連著電腦或 Metro，就能直接安裝到 Android 手機試用。
           </p>
         </div>
         <div className="下載按鈕列">

@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "AI 陪走夥伴",
-    "slug": "ai-walk-buddy-demo",
+    "name": "高齡行人過馬路防護與步態分析",
+    "slug": "safestride-senior-crossing",
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
@@ -18,7 +18,7 @@
     },
     "android": {
       "package": "com.anglezero.safestride",
-      "versionCode": 1,
+      "versionCode": 2,
       "permissions": [
         "ACTIVITY_RECOGNITION",
         "VIBRATE"
