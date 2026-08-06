@@ -889,8 +889,22 @@ function 首頁畫面({
       <Text style={樣式.首頁符號}>{狀態符號}</Text>
       <Text style={樣式.路口秒數標題}>此路口需</Text>
       <Text style={樣式.路口秒數數字}>{路口資訊.所需秒數} 秒</Text>
-      <Text style={樣式.首頁主文字}>{步態.主文字}</Text>
-      <Text style={樣式.首頁副文字}>{路口資訊.路口說明}</Text>
+      <Text
+        style={樣式.首頁主文字}
+        numberOfLines={1}
+        adjustsFontSizeToFit
+        minimumFontScale={0.56}
+      >
+        {步態.主文字}
+      </Text>
+      <Text
+        style={樣式.首頁副文字}
+        numberOfLines={1}
+        adjustsFontSizeToFit
+        minimumFontScale={0.62}
+      >
+        {路口資訊.路口說明}
+      </Text>
       <View style={樣式.首頁資料列}>
         <狀態膠囊 標籤="估算路寬" 數值={`${路口資訊.路寬公尺.toFixed(0)} 公尺`} />
         <狀態膠囊 標籤="平均步速" 數值={`${步態.十分鐘平均步速.toFixed(2)} m/s`} />
@@ -1274,6 +1288,7 @@ const 樣式 = StyleSheet.create({
     lineHeight: 56,
     marginTop: 8,
     textAlign: 'center',
+    width: '100%',
   },
   首頁副文字: {
     color: '#FFFFFF',
@@ -1282,6 +1297,7 @@ const 樣式 = StyleSheet.create({
     lineHeight: 36,
     marginTop: 14,
     textAlign: 'center',
+    width: '100%',
   },
   首頁資料列: {
     gap: 10,
