@@ -1,6 +1,7 @@
 ﻿import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   AccessibilityInfo,
+  Image,
   Modal,
   Pressable,
   SafeAreaView,
@@ -20,6 +21,7 @@ import { Accelerometer, Gyroscope, Pedometer } from 'expo-sensors';
 
 const 快樂視力龍影片 = require('./assets/happyDragonFix.mp4');
 const 生氣視力龍影片 = require('./assets/angry_dragon.mp4');
+const 悅步品牌圖片 = require('./assets/joywalk-icon.png');
 
 const 分頁 = {
   首頁: '首頁',
@@ -812,8 +814,13 @@ export default function App() {
           delayLongPress={900}
           style={樣式.品牌區}
         >
-          <Text style={樣式.品牌文字}>SafeStride 安行</Text>
-          <Text style={樣式.品牌副標}>高齡行人過馬路防護與步態分析</Text>
+          <View style={樣式.品牌內容列}>
+            <Image source={悅步品牌圖片} style={樣式.品牌圖片} resizeMode="contain" />
+            <View style={樣式.品牌文字區}>
+              <Text style={樣式.品牌文字}>悅步 JoyWalk</Text>
+              <Text style={樣式.品牌副標}>高齡行人過馬路防護與步態分析</Text>
+            </View>
+          </View>
         </Pressable>
         <Pressable
           accessibilityLabel="長按開啟家屬設定"
@@ -1000,7 +1007,7 @@ function 寵物任務畫面({ 今日任務, 步態, 點數, 交通紀錄 }) {
       <Text style={樣式.頁面標題}>虛擬寵物與任務</Text>
       <View style={樣式.寵物卡片}>
         <視力龍影片 心情={交通紀錄.視力龍心情} />
-        <Text style={樣式.寵物名稱}>安行夥伴</Text>
+        <Text style={樣式.寵物名稱}>悅步夥伴</Text>
         <Text style={樣式.寵物狀態}>{寵物狀態}</Text>
         <Text style={樣式.點數文字}>目前點數 {點數} 點</Text>
         <View style={樣式.交通紀錄列}>
@@ -1243,9 +1250,23 @@ const 樣式 = StyleSheet.create({
     flex: 1,
     paddingRight: 12,
   },
+  品牌內容列: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 10,
+  },
+  品牌圖片: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 10,
+    height: 48,
+    width: 48,
+  },
+  品牌文字區: {
+    flex: 1,
+  },
   品牌文字: {
     color: '#FFFFFF',
-    fontSize: 28,
+    fontSize: 26,
     fontWeight: '900',
   },
   品牌副標: {

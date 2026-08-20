@@ -66,6 +66,6 @@ jobs:
             gh release upload "$GITHUB_REF_NAME" dist-apk/SafeStride-mvp-release.apk --clobber
           else
             gh release create "$GITHUB_REF_NAME" dist-apk/SafeStride-mvp-release.apk \
-              --title "SafeStride $GITHUB_REF_NAME" \
-              --notes "SafeStride MVP Release APK，已內含 JavaScript bundle，可直接安裝到 Android 手機執行。此版本不使用攝像頭、不使用定位，僅以手機端步行資料進行本機分析。"
+              --title "悅步 JoyWalk $GITHUB_REF_NAME" \
+              --notes "悅步 JoyWalk MVP Release APK，已內含 JavaScript bundle，可直接安裝到 Android 手機執行。此版本不使用攝像頭，僅以手機端步行資料進行本機分析。"
           fi

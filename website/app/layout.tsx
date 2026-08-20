@@ -7,15 +7,15 @@ const 分享圖網址 = `${網站路徑前綴}/og.jpg`;
 
 export const metadata: Metadata = {
   metadataBase: new URL(網站網址),
-  title: "SafeStride 安行 | 高齡行人過馬路防護與步態分析",
+  title: "悅步 JoyWalk | 高齡行人過馬路防護與步態分析",
   description:
-    "SafeStride 安行是一款高齡行人過馬路防護與步態分析 App MVP，以手機端步行資料做本機分析，不使用攝像頭、不上傳個人資料。",
+    "悅步 JoyWalk 是一款高齡行人過馬路防護與步態分析 App MVP，以手機端步行資料做本機分析，不使用攝像頭、不上傳個人資料。",
   icons: {
     icon: `${網站路徑前綴}/favicon.svg`,
     shortcut: `${網站路徑前綴}/favicon.svg`,
   },
   openGraph: {
-    title: "SafeStride 安行",
+    title: "悅步 JoyWalk",
     description: "高齡行人過馬路防護、步態分析衛教與 App 展示",
     type: "website",
     url: 網站網址,
@@ -24,13 +24,13 @@ export const metadata: Metadata = {
         url: 分享圖網址,
         width: 1200,
         height: 630,
-        alt: "SafeStride 安行公開展示圖",
+        alt: "悅步 JoyWalk 公開展示圖",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "SafeStride 安行",
+    title: "悅步 JoyWalk",
     description: "高齡行人過馬路防護、步態分析衛教與 App 展示",
     images: [分享圖網址],
   },

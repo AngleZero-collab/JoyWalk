@@ -75,8 +75,8 @@ export default function Home() {
       <section className="主視覺" style={主視覺樣式}>
         <div className="主視覺遮罩" />
         <nav className="導覽列" aria-label="主要導覽">
-          <a className="品牌標記" href="#top" aria-label="SafeStride 安行首頁">
-            SafeStride 安行
+          <a className="品牌標記" href="#top" aria-label="悅步 JoyWalk 首頁">
+            悅步 JoyWalk
           </a>
           <div className="導覽連結">
             <a href="#pain-points">痛點衛教</a>
@@ -86,8 +86,8 @@ export default function Home() {
         </nav>
 
         <div className="主視覺內容" id="top">
-          <p className="前導文字">AI 陪走夥伴 × SafeStride 安行</p>
-          <h1>SafeStride 安行</h1>
+          <p className="前導文字">AI 陪走夥伴 × 悅步 JoyWalk</p>
+          <h1>悅步 JoyWalk</h1>
           <p className="主標副文">
             把路口寬度、最近 10 分鐘平均步速、加速度與陀螺儀資料，轉成高齡行者能立即理解的安全秒數與紅綠提醒。
           </p>
@@ -142,7 +142,7 @@ export default function Home() {
           </div>
         </div>
 
-        <div className="手機舞台" aria-label="SafeStride 安行 App 示意圖">
+        <div className="手機舞台" aria-label="悅步 JoyWalk App 示意圖">
           <div className="手機外框 主要手機">
             <div className="手機聽筒" />
             <div className="手機畫面 綠燈畫面">
@@ -215,7 +215,7 @@ export default function Home() {
       </section>
 
       <footer className="頁尾">
-        <strong>SafeStride 安行</strong>
+        <strong>悅步 JoyWalk</strong>
         <span>高齡行者步行安全衛教與手機端步態分析 MVP</span>
       </footer>
     </main>

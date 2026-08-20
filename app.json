@@ -1,21 +1,22 @@
 {
   "expo": {
-    "name": "SafeStride 安行",
-    "slug": "safestride-senior-crossing",
-    "version": "1.3.2",
+    "name": "悅步 JoyWalk",
+    "slug": "joywalk-senior-crossing",
+    "version": "1.4.0",
     "orientation": "portrait",
+    "icon": "./assets/joywalk-icon.png",
     "userInterfaceStyle": "automatic",
     "plugins": [
       [
         "expo-sensors",
         {
-          "motionPermission": "SafeStride 需要讀取動作感測器，用於本機步態分析與安全提醒。資料只在手機端運算。"
+          "motionPermission": "悅步 JoyWalk 需要讀取動作感測器，用於本機步態分析與安全提醒。資料只在手機端運算。"
         }
       ],
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "SafeStride 需要使用定位，在路口停等時估算安全通過秒數。定位資料不會上傳雲端。"
+          "locationWhenInUsePermission": "悅步 JoyWalk 需要使用定位，在路口停等時估算安全通過秒數。定位資料不會上傳雲端。"
         }
       ],
       "expo-video"
@@ -25,7 +26,7 @@
     },
     "android": {
       "package": "com.anglezero.safestride",
-      "versionCode": 7,
+      "versionCode": 8,
       "permissions": [
         "ACTIVITY_RECOGNITION",
         "ACCESS_COARSE_LOCATION",
@@ -33,8 +34,14 @@
         "VIBRATE"
       ],
       "adaptiveIcon": {
+        "foregroundImage": "./assets/joywalk-icon.png",
         "backgroundColor": "#000000"
       }
+    },
+    "splash": {
+      "image": "./assets/joywalk-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#FFFFFF"
     }
   }
 }

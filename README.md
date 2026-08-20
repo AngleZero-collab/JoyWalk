@@ -1,6 +1,6 @@
-# SafeStride 安行（高齡行人過馬路防護與步態分析）
+# 悅步 JoyWalk（高齡行人過馬路防護與步態分析）
 
-SafeStride 安行是一個協助高齡行者判斷自身步行狀態與路口安全秒數的 MVP 專案。現階段不使用攝像頭，先以手機端步數、步頻、加速度、陀螺儀與 GPS 停等狀態做本機分析，並用高對比畫面、語音與震動提醒「可以通過」或「請先停下」。
+悅步 JoyWalk 是一個協助高齡行者判斷自身步行狀態與路口安全秒數的 MVP 專案。現階段不使用攝像頭，先以手機端步數、步頻、加速度、陀螺儀與 GPS 停等狀態做本機分析，並用高對比畫面、語音與震動提醒「可以通過」或「建議兩段式過馬路」。
 
 ## 專案結構
 
@@ -33,7 +33,7 @@ APK 直接下載：
 https://github.com/AngleZero-collab/SafeStride/releases/latest/download/SafeStride-mvp-release.apk
 ```
 
-若尚未建立 Release，可到 GitHub 的 `Actions` 執行 `產生 Android Release APK`，下載 `SafeStride-mvp-release-apk` artifact。正式 Release 檔名為 `SafeStride-mvp-release.apk`，已內含 JavaScript bundle，可直接安裝執行。
+若尚未建立 Release，可到 GitHub 的 `Actions` 執行 `產生 Android Release APK`，下載 `SafeStride-mvp-release-apk` artifact。為了延續既有下載連結，正式 Release 檔名仍為 `SafeStride-mvp-release.apk`，但 App 顯示名稱已改為「悅步 JoyWalk」，並已內含 JavaScript bundle，可直接安裝執行。
 
 ## App 開發
 

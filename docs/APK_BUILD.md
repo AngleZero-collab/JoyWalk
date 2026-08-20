@@ -1,6 +1,6 @@
 # APK 下載與建置方式
 
-SafeStride 目前以 GitHub Actions 產生 Android Release APK，方便直接安裝到手機試用。Release APK 會把 JavaScript bundle 一起打包進安裝檔，因此不需要連著電腦或 Metro。
+悅步 JoyWalk 目前以 GitHub Actions 產生 Android Release APK，方便直接安裝到手機試用。Release APK 會把 JavaScript bundle 一起打包進安裝檔，因此不需要連著電腦或 Metro。
 
 APK 直接下載：
 
@@ -8,7 +8,7 @@ APK 直接下載：
 https://github.com/AngleZero-collab/SafeStride/releases/latest/download/SafeStride-mvp-release.apk
 ```
 
-若手機出現 `Unable to load script`，通常代表安裝到 Debug APK；請改裝 `SafeStride-mvp-release.apk`。
+若手機出現 `Unable to load script`，通常代表安裝到 Debug APK；請改裝正式 Release APK。
 
 ## 手動產生 APK Artifact
 
