@@ -2,7 +2,7 @@
   "expo": {
     "name": "悅步 JoyWalk",
     "slug": "joywalk-senior-crossing",
-    "version": "1.4.1",
+    "version": "1.4.2",
     "orientation": "portrait",
     "icon": "./assets/joywalk-icon.png",
     "userInterfaceStyle": "automatic",
@@ -26,7 +26,7 @@
     },
     "android": {
       "package": "com.anglezero.safestride",
-      "versionCode": 9,
+      "versionCode": 10,
       "permissions": [
         "ACTIVITY_RECOGNITION",
         "ACCESS_COARSE_LOCATION",
