@@ -47,22 +47,8 @@ const 預設步幅公尺 = 0.58;
 const 預設平均步速 = 0.8;
 const 緩衝秒數 = 5;
 const 停等速度門檻 = 0.25;
-const 地圖查詢冷卻毫秒 = 20000;
 const 十分鐘毫秒 = 10 * 60 * 1000;
-const 開放街圖查詢半徑 = 42;
 const 初始點數 = 120;
-
-const 道路等級寬度表 = {
-  motorway: 24,
-  trunk: 21,
-  primary: 18,
-  secondary: 16,
-  tertiary: 14,
-  unclassified: 10,
-  residential: 8,
-  living_street: 6,
-  service: 6,
-};
 
 const 初始路口資訊 = {
   狀態: '等待 GPS',
@@ -128,7 +114,6 @@ export default function App() {
   const [步態, 設定步態] = useState(初始步態);
   const [感測器啟用, 設定感測器啟用] = useState(true);
   const [定位啟用, 設定定位啟用] = useState(true);
-  const [地圖查詢啟用, 設定地圖查詢啟用] = useState(false);
   const [路口資訊, 設定路口資訊] = useState(初始路口資訊);
   const [手動通行狀態, 設定手動通行狀態] = useState(null);
   const [手動平均步速, 設定手動平均步速] = useState(null);
@@ -168,8 +153,6 @@ export default function App() {
   const 強震提醒參考 = useRef(true);
   const 路口資訊參考 = useRef(初始路口資訊);
   const 步速樣本 = useRef([]);
-  const 上次地圖查詢時間 = useRef(0);
-  const 地圖查詢中 = useRef(false);
   const 上次路口播報時間 = useRef(0);
 
   const 基準步幅 = useMemo(() => {
@@ -206,7 +189,7 @@ export default function App() {
     return () => {
       清除定位();
     };
-  }, [定位啟用, 地圖查詢啟用]);
+  }, [定位啟用]);
 
   useEffect(() => {
     if (!感測器啟用) {
@@ -399,60 +382,6 @@ export default function App() {
     };
   }
 
-  function 從道路標籤估算寬度(標籤 = {}) {
-    const 標記寬度 = Number.parseFloat(String(標籤.width ?? '').replace('m', ''));
-    if (Number.isFinite(標記寬度) && 標記寬度 >= 3) {
-      return 標記寬度;
-    }
-
-    const 車道數 = Number.parseFloat(標籤.lanes);
-    if (Number.isFinite(車道數) && 車道數 > 0) {
-      return Math.max(6, Math.min(28, 車道數 * 3.25 + 2));
-    }
-
-    return 道路等級寬度表[標籤.highway] ?? 12;
-  }
-
-  async function 查詢開放街圖路口資訊({ latitude, longitude }) {
-    const 查詢語法 = `
-      [out:json][timeout:5];
-      (
-        way(around:${開放街圖查詢半徑},${latitude},${longitude})["highway"];
-        node(around:${開放街圖查詢半徑},${latitude},${longitude})["highway"="crossing"];
-        node(around:${開放街圖查詢半徑},${latitude},${longitude})["highway"="traffic_signals"];
-        node(around:${開放街圖查詢半徑},${latitude},${longitude})["crossing"];
-      );
-      out tags center 12;
-    `;
-
-    const 回應 = await fetch('https://overpass-api.de/api/interpreter', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
-      body: `data=${encodeURIComponent(查詢語法)}`,
-    });
-
-    if (!回應.ok) {
-      throw new Error('開放街圖查詢失敗');
-    }
-
-    const 資料 = await 回應.json();
-    const 道路列表 = (資料.elements ?? []).filter((項目) => 項目.type === 'way' && 項目.tags?.highway);
-    const 路口節點列表 = (資料.elements ?? []).filter((項目) => 項目.type === 'node');
-    const 主要道路 = 道路列表
-      .map((道路) => ({
-        標籤: 道路.tags,
-        路寬公尺: 從道路標籤估算寬度(道路.tags),
-      }))
-      .sort((前, 後) => 後.路寬公尺 - 前.路寬公尺)[0];
-
-    return {
-      路寬公尺: 主要道路?.路寬公尺 ?? 16,
-      資料來源: 'OpenStreetMap 路寬估算',
-      路口說明: 路口節點列表.length ? '偵測到路口或行人穿越節點' : '偵測到附近道路，未找到明確路口節點',
-      是否路口等待: 路口節點列表.length > 0 || 道路列表.length >= 2,
-    };
-  }
-
   function 播報路口秒數(下一路口資訊) {
     const 現在 = Date.now();
     if (!下一路口資訊.是否路口等待 || 現在 - 上次路口播報時間.current < 30000) {
@@ -465,7 +394,7 @@ export default function App() {
     );
   }
 
-  async function 處理定位更新(位置) {
+  function 處理定位更新(位置) {
     const { coords } = 位置;
     const GPS速度 = Math.max(0, coords.speed ?? 0);
     const 定位精準度 = coords.accuracy ?? null;
@@ -483,22 +412,7 @@ export default function App() {
       return;
     }
 
-    let 路寬結果 = 本機估算路口寬度(定位精準度);
-    const 現在 = Date.now();
-    if (地圖查詢啟用 && !地圖查詢中.current && 現在 - 上次地圖查詢時間.current >= 地圖查詢冷卻毫秒) {
-      地圖查詢中.current = true;
-      上次地圖查詢時間.current = 現在;
-      try {
-        路寬結果 = await 查詢開放街圖路口資訊(coords);
-      } catch (錯誤) {
-        路寬結果 = {
-          ...路寬結果,
-          路口說明: '地圖查詢失敗，改用本機保守路寬估算',
-        };
-      } finally {
-        地圖查詢中.current = false;
-      }
-    }
+    const 路寬結果 = 本機估算路口寬度(定位精準度);
 
     const 即時平均步速 = 取得十分鐘平均步速();
     const 所需秒數 = 計算安全通過秒數(路寬結果.路寬公尺, 即時平均步速);
@@ -860,13 +774,11 @@ export default function App() {
         <家屬設定畫面
           感測器啟用={感測器啟用}
           定位啟用={定位啟用}
-          地圖查詢啟用={地圖查詢啟用}
           強震提醒={強震提醒}
           緊急聯絡人={緊急聯絡人}
           基準步幅文字={基準步幅文字}
           on感測器切換={設定感測器啟用}
           on定位切換={設定定位啟用}
-          on地圖查詢切換={設定地圖查詢啟用}
           on強震切換={設定強震提醒}
           on聯絡人變更={設定緊急聯絡人}
           on步幅變更={設定基準步幅文字}
@@ -1064,13 +976,11 @@ function 獎勵商店畫面({ 點數, 最後獎勵, on抽卡, on兌換 }) {
 function 家屬設定畫面({
   感測器啟用,
   定位啟用,
-  地圖查詢啟用,
   強震提醒,
   緊急聯絡人,
   基準步幅文字,
   on感測器切換,
   on定位切換,
-  on地圖查詢切換,
   on強震切換,
   on聯絡人變更,
   on步幅變更,
@@ -1082,7 +992,6 @@ function 家屬設定畫面({
       <Text style={樣式.設定提示}>此頁由右上角「家屬」長按開啟，避免長輩誤觸。</Text>
       <設定列 標題="啟用本機感測器" 說明="讀取加速度計、陀螺儀與計步器" 值={感測器啟用} onValueChange={on感測器切換} />
       <設定列 標題="啟用 GPS 路口提醒" 說明="停在路口時估算安全通過秒數" 值={定位啟用} onValueChange={on定位切換} />
-      <設定列 標題="允許 OSM 路寬查詢" 說明="開啟後會用目前定位查詢 OpenStreetMap；關閉時只做本機保守估算" 值={地圖查詢啟用} onValueChange={on地圖查詢切換} />
       <設定列 標題="危險時強震提醒" 說明="步速驟降或晃動異常時啟動急促震動" 值={強震提醒} onValueChange={on強震切換} />
       <Text style={樣式.輸入標籤}>SOS 緊急聯絡人</Text>
       <TextInput
@@ -1105,7 +1014,7 @@ function 家屬設定畫面({
       <View style={樣式.隱私宣告卡片}>
         <Text style={樣式.說明標題}>本機運算隱私宣告</Text>
         <Text style={樣式.說明文字}>
-          加速度計、陀螺儀與步數資料只在手機本機端運算。每次分析後立即清空記憶體內原始陣列。OSM 路寬查詢預設關閉；開啟時才會用目前定位查詢地圖路寬。後續 JNI / NDK / FFI 演算法也必須維持同樣原則。
+          加速度計、陀螺儀、步數與定位判斷只在手機本機端運算。每次分析後立即清空記憶體內原始陣列；路寬以本機保守規則估算，不會把 GPS 座標送到雲端。後續 JNI / NDK / FFI 演算法也必須維持同樣原則。
         </Text>
       </View>
       <Pressable style={樣式.關閉設定按鈕} onPress={on關閉}>
