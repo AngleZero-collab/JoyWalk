@@ -4,7 +4,7 @@
 
 - 建立單一 Git 專案，包含 Expo App 與公開介紹網站。
 - 設定 `main` 作為穩定版本分支。
-- 將 GitHub 遠端指向 `AngleZero-collab/SafeStride`。
+- 將 GitHub 遠端指向 `AngleZero-collab/JoyWalk`。
 
 ## 第二階段：公開介紹網站
 

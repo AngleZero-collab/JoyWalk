@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 const 網站路徑前綴 = process.env.NEXT_PUBLIC_SITE_BASE_PATH ?? "";
-const 網站網址 = "https://anglezero-collab.github.io/SafeStride";
+const 網站網址 = "https://anglezero-collab.github.io/JoyWalk";
 const 分享圖網址 = `${網站路徑前綴}/og.jpg`;
 
 export const metadata: Metadata = {

@@ -16,7 +16,7 @@
 GitHub Pages 網址：
 
 ```text
-https://anglezero-collab.github.io/SafeStride/
+https://anglezero-collab.github.io/JoyWalk/
 ```
 
 本機建置 GitHub Pages 靜態輸出：
@@ -30,10 +30,10 @@ npm run site:build:pages
 APK 直接下載：
 
 ```text
-https://github.com/AngleZero-collab/SafeStride/releases/latest/download/SafeStride-mvp-release.apk
+https://github.com/AngleZero-collab/JoyWalk/releases/latest/download/JoyWalk-mvp-release.apk
 ```
 
-若尚未建立 Release，可到 GitHub 的 `Actions` 執行 `產生 Android Release APK`，下載 `SafeStride-mvp-release-apk` artifact。為了延續既有下載連結，正式 Release 檔名仍為 `SafeStride-mvp-release.apk`，但 App 顯示名稱已改為「悅步 JoyWalk」，並已內含 JavaScript bundle，可直接安裝執行。
+若尚未建立 Release，可到 GitHub 的 `Actions` 執行 `產生 Android Release APK`，下載 `JoyWalk-mvp-release-apk` artifact。正式 Release 檔名為 `JoyWalk-mvp-release.apk`，App 顯示名稱為「悅步 JoyWalk」，並已內含 JavaScript bundle，可直接安裝執行。
 
 ## App 開發
 

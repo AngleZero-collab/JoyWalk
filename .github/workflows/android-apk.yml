@@ -48,13 +48,13 @@ jobs:
       - name: 整理 APK 檔案
         run: |
           mkdir -p dist-apk
-          cp android/app/build/outputs/apk/release/app-release.apk dist-apk/SafeStride-mvp-release.apk
+          cp android/app/build/outputs/apk/release/app-release.apk dist-apk/JoyWalk-mvp-release.apk
 
       - name: 上傳 APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: SafeStride-mvp-release-apk
-          path: dist-apk/SafeStride-mvp-release.apk
+          name: JoyWalk-mvp-release-apk
+          path: dist-apk/JoyWalk-mvp-release.apk
           if-no-files-found: error
 
       - name: 建立或更新 GitHub Release
@@ -63,9 +63,9 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
-            gh release upload "$GITHUB_REF_NAME" dist-apk/SafeStride-mvp-release.apk --clobber
+            gh release upload "$GITHUB_REF_NAME" dist-apk/JoyWalk-mvp-release.apk --clobber
           else
-            gh release create "$GITHUB_REF_NAME" dist-apk/SafeStride-mvp-release.apk \
+            gh release create "$GITHUB_REF_NAME" dist-apk/JoyWalk-mvp-release.apk \
               --title "悅步 JoyWalk $GITHUB_REF_NAME" \
               --notes "悅步 JoyWalk MVP Release APK，已內含 JavaScript bundle，可直接安裝到 Android 手機執行。此版本不使用攝像頭，僅以手機端步行資料進行本機分析。"
           fi

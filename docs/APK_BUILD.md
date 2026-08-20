@@ -5,20 +5,20 @@
 APK 直接下載：
 
 ```text
-https://github.com/AngleZero-collab/SafeStride/releases/latest/download/SafeStride-mvp-release.apk
+https://github.com/AngleZero-collab/JoyWalk/releases/latest/download/JoyWalk-mvp-release.apk
 ```
 
 若手機出現 `Unable to load script`，通常代表安裝到 Debug APK；請改裝正式 Release APK。
 
 ## 手動產生 APK Artifact
 
-1. 到 GitHub repository：`AngleZero-collab/SafeStride`
+1. 到 GitHub repository：`AngleZero-collab/JoyWalk`
 2. 打開 `Actions`
 3. 選擇 `產生 Android Release APK`
 4. 點選 `Run workflow`
-5. 等待流程完成後，下載 `SafeStride-mvp-release-apk`
+5. 等待流程完成後，下載 `JoyWalk-mvp-release-apk`
 
-下載後將 `SafeStride-mvp-release.apk` 傳到 Android 手機，允許「安裝未知來源 App」即可安裝。
+下載後將 `JoyWalk-mvp-release.apk` 傳到 Android 手機，允許「安裝未知來源 App」即可安裝。
 
 ## 建立公開下載版本
 
@@ -29,7 +29,7 @@ git tag v0.2.0
 git push origin v0.2.0
 ```
 
-GitHub Actions 會自動建置 APK，並把 `SafeStride-mvp-release.apk` 附加到對應的 GitHub Release。
+GitHub Actions 會自動建置 APK，並把 `JoyWalk-mvp-release.apk` 附加到對應的 GitHub Release。
 
 ## 目前 App 權限
 

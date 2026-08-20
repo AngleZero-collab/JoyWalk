@@ -1,8 +1,8 @@
 import type { CSSProperties } from "react";
 
 const 網站路徑前綴 = process.env.NEXT_PUBLIC_SITE_BASE_PATH ?? "";
-const APK下載連結 = "https://github.com/AngleZero-collab/SafeStride/releases/latest/download/SafeStride-mvp-release.apk";
-const 原始碼連結 = "https://github.com/AngleZero-collab/SafeStride";
+const APK下載連結 = "https://github.com/AngleZero-collab/JoyWalk/releases/latest/download/JoyWalk-mvp-release.apk";
+const 原始碼連結 = "https://github.com/AngleZero-collab/JoyWalk";
 
 const 痛點列表 = [
   {
@@ -41,7 +41,7 @@ const App流程列表 = [
   {
     步驟: "02",
     標題: "偵測路口停等",
-    說明: "使用 GPS 偵測是否停在路口，並以本機估算或 OSM 查詢取得路寬。",
+    說明: "使用 GPS 偵測是否停在路口，並以本機保守規則估算路寬。",
   },
   {
     步驟: "03",
@@ -99,7 +99,7 @@ export default function Home() {
               看 App 示範
             </a>
           </div>
-          <p className="下載提示列">不拍照；定位只用於路口秒數估算，OSM 查詢由家屬設定開關控制。</p>
+          <p className="下載提示列">不拍照；定位只在手機本機端判斷停等與估算安全秒數。</p>
         </div>
       </section>
 
